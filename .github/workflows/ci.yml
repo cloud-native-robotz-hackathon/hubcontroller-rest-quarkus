@@ -1,5 +1,10 @@
 name: Application CI
 on: [push, pull_request]
+
+concurrency:
+  group: ci
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Application test suite
