@@ -9,19 +9,16 @@ jobs:
   test:
     name: Application test suite
     runs-on: ubuntu-latest
+    env:
+      MVN: mvn --show-version --batch-mode
     steps:
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'adopt'          
-      - uses: actions/checkout@v4
-      - name: cache ~/.m2
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2      
-      - name: Run test
-        run: |
-          chmod +x mvnw
-          ./mvnw -ntp clean verify
+          distribution: 'temurin'
+          cache: 'maven'          
+      - uses: actions/checkout@v4     
+      - name: mvn clean compile
+        run: $MVN clean compile
+      - name: mvn test
+        run: $MVN test
