@@ -1,58 +1,168 @@
 package org.redhat;
 
 import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.request;
 import static org.hamcrest.CoreMatchers.is;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
 import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.model.JsonBody;
 
 import io.quarkiverse.mockserver.test.InjectMockServerClient;
 import io.quarkiverse.mockserver.test.MockServerTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
+import io.restassured.RestAssured;
+import io.restassured.filter.log.ResponseLoggingFilter;
 
 @QuarkusTest
 @QuarkusTestResource(MockServerTestResource.class)
+
 class RobotEndpointTest {
 
-@InjectMockServerClient
-    MockServerClient mockServerClient;
+  static {
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+    RestAssured.filters(new ResponseLoggingFilter());
+  }
 
+  @InjectMockServerClient
+  MockServerClient mockServerClient;
 
-    @Test
-    void testRobotEndpointStatus() {
-        given()
-          .when().get("/robot/status")
-          .then()
-             .statusCode(200)
-             .body(is("OK"));
-    }
+  @Test
+  void testRobotEndpointStatus() {
+    given()
+        .when().get("/robot/status")
+        .then()
+        .statusCode(200)
+        .body(is("OK"));
+  }
 
-    @Test
-    void testRobotEndpointRemoteStatus() {
+  @Test
+  void testRobotEndpointRemoteStatus() {
 
-// create mock rest endpoint
-        mockServerClient
-                .when(request()
-                .withPath("/test/remote_status")
-                .withMethod("POST"))
-                .respond(
-                   httpRequest -> response()
-                                  .withStatusCode(200)
-                                  .withHeader("Content-Type", "text/html")
-                                  .withBody("OK")
-                );
-    
-        given()
-          .when().get("/robot/remote_status")
-          .then()
-             .statusCode(200)
-             .body(is("OK"));
-    }
+    // create mock rest endpoint
+    mockServerClient
+        .when(request()
+            .withPath("/remote_status")
+            .withMethod("GET"))
+        .respond(
+            httpRequest -> response()
+                .withStatusCode(200)
+                .withHeader("Content-Type", "text/html")
+                .withBody("OK"));
+
+    given()
+        .when().get("/robot/remote_status")
+        .then()
+        .statusCode(200)
+        .body(is("OK"));
+  }
+
+  @Test
+  void testRobotEndpointForward() {
+
+    // create mock rest endpoint
+    mockServerClient
+        .when(request()
+            .withPath("/forward/10")
+            .withMethod("POST"))
+        .respond(
+            httpRequest -> response()
+                .withStatusCode(200)
+                .withHeader("Content-Type", "text/html")
+                .withBody("OK"));
+
+    given()
+        .when().post("/robot/forward/10")
+        .then()
+        .statusCode(200)
+        .body(is("OK"));
+  }
+
+  @Test
+  void testRobotEndpointBackward() {
+
+    // create mock rest endpoint
+    mockServerClient
+        .when(request()
+            .withPath("/backward/10")
+            .withMethod("POST"))
+        .respond(
+            httpRequest -> response()
+                .withStatusCode(200)
+                .withHeader("Content-Type", "text/html")
+                .withBody("OK"));
+
+    given()
+        .when().post("/robot/backward/10")
+        .then()
+        .statusCode(200)
+        .body(is("OK"));
+  }
+
+  @Test
+  void testRobotEndpointLeft() {
+
+    // create mock rest endpoint
+    mockServerClient
+        .when(request()
+            .withPath("/left/10")
+            .withMethod("POST"))
+        .respond(
+            httpRequest -> response()
+                .withStatusCode(200)
+                .withHeader("Content-Type", "text/html")
+                .withBody("OK"));
+
+    given()
+        .when().post("/robot/left/10")
+        .then()
+        .statusCode(200)
+        .body(is("OK"));
+  }
+
+  @Test
+  void testRobotEndpointRight() {
+
+    // create mock rest endpoint
+    mockServerClient
+        .when(request()
+            .withPath("/right/10")
+            .withMethod("POST"))
+        .respond(
+            httpRequest -> response()
+                .withStatusCode(200)
+                .withHeader("Content-Type", "text/html")
+                .withBody("OK"));
+
+    given()
+        .when().post("/robot/right/10")
+        .then()
+        .statusCode(200)
+        .body(is("OK"));
+  }
+
+  @Test
+  void testRobotEndpointCamera() {
+
+    // create mock rest endpoint
+    mockServerClient
+        .when(request()
+            .withPath("/camera")
+            .withMethod("GET"))
+        .respond(
+            httpRequest -> response()
+                .withStatusCode(200)
+                .withHeader("Content-Type", "text/html")
+                .withBody(
+                    "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAADMElEQVR4nOzVwQnAIBQFQYXff81RUkQCOyDj1YOPnbXWPmeTRef+/3O/OyBjzh3CD95BfqICMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMO0TAAD//2Anhf4QtqobAAAAAElFTkSuQmCC"));
+
+    given()
+        .when().get("/robot/camera")
+        .then()
+        .statusCode(200)
+        .body(is(
+            "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAADMElEQVR4nOzVwQnAIBQFQYXff81RUkQCOyDj1YOPnbXWPmeTRef+/3O/OyBjzh3CD95BfqICMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMK0CMO0TAAD//2Anhf4QtqobAAAAAElFTkSuQmCC"));
+  }
 
 }
