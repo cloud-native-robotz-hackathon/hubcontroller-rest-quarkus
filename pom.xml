@@ -69,6 +69,7 @@
     <dependency>
       <groupId>org.mock-server</groupId>
       <artifactId>mockserver-client-java</artifactId>
+      <version>RELEASE</version>
     </dependency>
     <dependency>
       <groupId>io.quarkiverse.mockserver</groupId>
