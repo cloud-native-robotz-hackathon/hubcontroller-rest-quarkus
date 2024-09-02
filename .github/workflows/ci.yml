@@ -7,7 +7,7 @@ concurrency:
 
 jobs:
   test:
-    name: Application test suite
+    name: Test, build and push
     runs-on: ubuntu-latest
     env:
       MVN: mvn --show-version --batch-mode
@@ -26,7 +26,7 @@ jobs:
         run: >-
             $MVN package -DskipTests
             -Dquarkus.container-image.push=true
-            -Dquarkus.container-image.username=cloud-native-robotz-hackathon+github
+            -Dquarkus.container-image.username=${{ secrets.QUAY_USER }}
             -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
             -Dquarkus.container-image.image=quay.io/${{ github.repository }}:latest
             '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
@@ -35,7 +35,7 @@ jobs:
             $MVN package -Pnative -DskipTests
             -Dquarkus.native.container-build=true
             -Dquarkus.container-image.push=true
-            -Dquarkus.container-image.username=cloud-native-robotz-hackathon+github
+            -Dquarkus.container-image.username=${{ secrets.QUAY_USER }}
             -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
             -Dquarkus.container-image.image=quay.io/${{ github.repository }}:latest-native
             '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
