@@ -1,0 +1,9 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: robot-mapping-configmap
+data:
+  MAP: |
+    {
+      "data": "data.lan"
+    }

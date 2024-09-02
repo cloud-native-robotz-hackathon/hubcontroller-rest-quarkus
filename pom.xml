@@ -1,6 +1,5 @@
-<?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.redhat</groupId>
   <artifactId>hub-controller-quarkus</artifactId>
@@ -12,9 +11,9 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.12.0</quarkus.platform.version>
+    <quarkus.platform.version>3.14.1</quarkus.platform.version>
     <skipITs>true</skipITs>
-    <surefire-plugin.version>3.2.5</surefire-plugin.version>
+    <surefire-plugin.version>3.3.1</surefire-plugin.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -54,6 +53,10 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-openshift</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
     </dependency>
@@ -70,13 +73,13 @@
       <groupId>org.mock-server</groupId>
       <artifactId>mockserver-client-java</artifactId>
       <version>RELEASE</version>
-    </dependency>
+  </dependency>
     <dependency>
       <groupId>io.quarkiverse.mockserver</groupId>
       <artifactId>quarkus-mockserver-test</artifactId>
       <version>1.10.0</version>
-      <scope>test</scope>
-  </dependency>
+      <!--<scope>test</scope>-->
+    </dependency>
   </dependencies>
   <build>
     <plugins>
