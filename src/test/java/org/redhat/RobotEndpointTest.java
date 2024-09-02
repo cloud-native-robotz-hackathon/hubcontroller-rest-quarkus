@@ -43,7 +43,7 @@ class RobotEndpointTest {
     // create mock rest endpoint
     mockServerClient
         .when(request()
-            .withPath("/remote_status")
+            .withPath("/")
             .withMethod("GET"))
         .respond(
             httpRequest -> response()
