@@ -30,3 +30,12 @@ jobs:
             -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
             -Dquarkus.container-image.image=quay.io/${{ github.repository }}:latest
             '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
+      - name: mvn package -Pnative-DskipTests -Dquarkus.native.container-build=true -Dquarkus.container-image.push=true latest
+        run: >-
+            $MVN package -Pnative-DskipTests
+            -Dquarkus.native.container-build=true
+            -Dquarkus.container-image.push=true
+            -Dquarkus.container-image.username=cloud-native-robotz-hackathon+github
+            -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
+            -Dquarkus.container-image.image=quay.io/${{ github.repository }}:latest-native
+            '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
