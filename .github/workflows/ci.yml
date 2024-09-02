@@ -28,5 +28,5 @@ jobs:
             -Dquarkus.container-image.push=true
             -Dquarkus.container-image.username=cloud-native-robotz-hackathon+github
             -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
-            -Dquarkus.container-image.image=https://quay.io/organization/cloud-native-robotz-hackathon/${{ github.repository }}:latest
+            -Dquarkus.container-image.image=https://quay.io/${{ github.repository }}:latest
             '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
