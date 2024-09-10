@@ -1,21 +1,36 @@
 package org.redhat;
 
-import io.quarkus.scheduler.Scheduled;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.websocket.*;
-import jakarta.websocket.server.PathParam;
-import jakarta.websocket.server.ServerEndpoint;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
-@ServerEndpoint("/dashboard/{clientId}")
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.quarkus.scheduler.Scheduled;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.PathParam;
+import jakarta.websocket.server.ServerEndpoint;
+
+@ServerEndpoint(value = "/dashboard/{clientId}")
 @ApplicationScoped
 public class DashBoard {
 
+    @Inject
+    RobotStatus robotStatus;
+
+    @Inject
+    ObjectMapper mapper;
+
     private Map<String, Session> sessions = new ConcurrentHashMap<>();
-    private AtomicInteger totalOrders = new AtomicInteger();
+
+    public record RobotCommand(String name, String command) {
+
+    }
 
     @OnOpen
     public void onOpen(Session session, @PathParam("clientId") String clientId) {
@@ -32,21 +47,32 @@ public class DashBoard {
         sessions.remove(clientId);
     }
 
-    @Scheduled(every="5s")
-    void increment() {
+    @Scheduled(every = "5s")
+    void push() {
         if (sessions != null) {
-            totalOrders.incrementAndGet();
-            broadcast(String.valueOf(totalOrders));
+            broadcast();
         }
     }
 
-    private void broadcast(String message) {
+    @Scheduled(every = "11s")
+    void check() {
+
+
+    }
+
+
+    private void broadcast() {
         sessions.values().forEach(s -> {
-            s.getAsyncRemote().sendObject(message, result ->  {
-                if (result.getException() != null) {
-                    System.out.println("Unable to send message: " + result.getException());
-                }
-            });
+            try {
+                s.getAsyncRemote().sendObject(mapper.writeValueAsString(robotStatus.getRobotList()), result -> {
+                    if (result.getException() != null) {
+                        System.out.println("Unable to send message: " + result.getException());
+                    }
+                });
+            } catch (JsonProcessingException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         });
     }
 

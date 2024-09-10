@@ -12,3 +12,21 @@
     # Set the required envvars
     export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock
     export TESTCONTAINERS_RYUK_DISABLED=true
+
+## Local run
+> quarkus dev
+
+## Deploy to OpenShift
+> quarkus build -Dquarkus.openshift.deploy=true
+
+## Local Testing
+curl -k http://localhost:8080/robot/remote_status\?user_key\=data
+
+## CRC Testing
+ curl -k http://hub-controller-quarkus-hubcontroller-dev.apps-crc.testing/robot/remote_status\?user_key\=data
+
+ ## TODO
+- Check Testing
+- Dashboard
+- Switch HubController
+- jdk update?
