@@ -36,14 +36,17 @@ public class RobotStatus {
                 .orElse(null);
 
                 if (robotMatch == null) {
-                    robotList.add(new Robot(name, operation));
-                    return true;
+
+                    robotMatch = new Robot(name, operation);
+                    System.out.println("Robot not found, adding --> " + robotMatch);
+                    robotList.add(robotMatch);
                 }
                 else
                 {
+                    System.out.println("Robot found --> " + robotMatch);
                     robotMatch.setOperation(operation);
-                    return robotMatch.isDisconnected();
                 }
+                return robotMatch.isDisconnected();
     }
 
     public boolean disconnectRobot(String shortId) {

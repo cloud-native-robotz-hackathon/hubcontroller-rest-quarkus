@@ -20,6 +20,12 @@ public class Robot {
         count++;
     }
 
+    @Override
+    public String toString() {
+        return "Robot [name=" + name + ", operation=" + operation + ", count=" + count + ", Disconnected="
+                + Disconnected + ", status=" + status + "]";
+    }
+
     public Robot(String name){
         this.name = name;
     }

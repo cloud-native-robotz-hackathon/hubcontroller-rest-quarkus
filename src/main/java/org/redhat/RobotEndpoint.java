@@ -97,7 +97,7 @@ public class RobotEndpoint {
 
                 System.out.println(userKey + ": forward called -> " + lengthInCm);
 
-                if (robotStatus.addOrUpdateRobot(userKey,"remote_status"))
+                if (robotStatus.addOrUpdateRobot(userKey,"forward"))
                                 return "Robot Disconnected";
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -119,7 +119,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": backward called -> " + lengthInCm);
-                if (robotStatus.addOrUpdateRobot(userKey,"remote_status"))
+                if (robotStatus.addOrUpdateRobot(userKey,"backward"))
                                 return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/backward/" + lengthInCm))
@@ -139,7 +139,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": left called -> " + degrees);
-                if (robotStatus.addOrUpdateRobot(userKey,"remote_status"))
+                if (robotStatus.addOrUpdateRobot(userKey,"left"))
                                 return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/left/" + degrees))
@@ -159,7 +159,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": right called -> " + degrees);
-                if (robotStatus.addOrUpdateRobot(userKey,"remote_status"))
+                if (robotStatus.addOrUpdateRobot(userKey,"right"))
                                 return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/right/" + degrees))
@@ -213,7 +213,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": camera called");
-                if (robotStatus.addOrUpdateRobot(userKey,"remote_status"))
+                if (robotStatus.addOrUpdateRobot(userKey,"camera"))
                                 return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/camera"))
