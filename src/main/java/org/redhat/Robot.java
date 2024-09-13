@@ -1,6 +1,9 @@
 package org.redhat;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 // Robot object
+@RegisterForReflection
 public class Robot {
 
     String name; // robot identifier
