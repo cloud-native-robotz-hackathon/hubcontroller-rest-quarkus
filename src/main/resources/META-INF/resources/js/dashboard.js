@@ -30,6 +30,7 @@ if (!connected) {
             console.log("robot : " + robotName);
             console.log("command : " + robotMessage.operation);
             console.log("disconnected : " + robotMessage.disconnected);
+            console.log("count : " + robotMessage.operationCount);
 
             if (!robotSet.has(robotName)) {
                 robotSet.add(robotName);
@@ -60,13 +61,12 @@ if (!connected) {
                     ` </div>`);
             }
             else if (robotMessage.operation !== null) {
-                console.log("Else");
-                console.log("ID -> " + "#" + robotId + "-status");
+                console.log("Robot operation on -> " + robotId);
 
                 $("#" + robotId + "-status").removeClass("text-danger");
                 $("#" + robotId + "-status").addClass("text-success");
                 $("#" + robotId + "-last-operation").text(robotMessage.operation);
-                $("#" + robotId + "-number-operations").text(robotMessage.count)
+                $("#" + robotId + "-number-operations").text(robotMessage.operationCount)
             }
 
 

@@ -16,7 +16,7 @@ import jakarta.websocket.Session;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 
-// Backend for the Dashboard Gui, providing updates through Websocket connections 
+// Backend for the Dashboard Gui, providing updates through Websocket connections
 @ServerEndpoint(value = "/dashboard/{clientId}")
 @ApplicationScoped
 public class DashBoard {
@@ -31,11 +31,6 @@ public class DashBoard {
 
     // stores the websocket sessions
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
-
-    // A robot message on the websocket
-    public record RobotCommand(String name, String command) {
-
-    }
 
     @OnOpen
     public void onOpen(final Session session, @PathParam("clientId") final String clientId) {
