@@ -16,37 +16,44 @@ import jakarta.websocket.Session;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 
+// Backend for the Dashboard Gui, providing updates through Websocket connections 
 @ServerEndpoint(value = "/dashboard/{clientId}")
 @ApplicationScoped
 public class DashBoard {
 
+    // Access the status of the robots
     @Inject
-    RobotStatus robotStatus;
+    RobotStatusController robotStatus;
 
+    // json mapper
     @Inject
     ObjectMapper mapper;
 
-    private Map<String, Session> sessions = new ConcurrentHashMap<>();
+    // stores the websocket sessions
+    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
+    // A robot message on the websocket
     public record RobotCommand(String name, String command) {
 
     }
 
     @OnOpen
-    public void onOpen(Session session, @PathParam("clientId") String clientId) {
+    public void onOpen(final Session session, @PathParam("clientId") final String clientId) {
         sessions.put(clientId, session);
     }
 
     @OnClose
-    public void onClose(Session session, @PathParam("clientId") String clientId) {
+    public void onClose(final Session session, @PathParam("clientId") final String clientId) {
         sessions.remove(clientId);
     }
 
     @OnError
-    public void onError(Session session, @PathParam("clientId") String clientId, Throwable throwable) {
+    public void onError(final Session session, @PathParam("clientId") final String clientId,
+            final Throwable throwable) {
         sessions.remove(clientId);
     }
 
+    // push updates to dashboard
     @Scheduled(every = "5s")
     void push() {
         if (sessions != null) {
@@ -54,24 +61,18 @@ public class DashBoard {
         }
     }
 
-    @Scheduled(every = "11s")
-    void check() {
-
-
-    }
-
-
+    // send updates to dashboard as RobotCommand list
     private void broadcast() {
         sessions.values().forEach(s -> {
             try {
                 s.getAsyncRemote().sendObject(mapper.writeValueAsString(robotStatus.getRobotList()), result -> {
                     if (result.getException() != null) {
-                        System.out.println("Unable to send message: " + result.getException());
+                        System.err.println("Unable to send message: -> " + result.getException());
+
                     }
                 });
-            } catch (JsonProcessingException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            } catch (final JsonProcessingException e) {
+                System.err.println("Unable to serialize message ->  " + e);
             }
         });
     }

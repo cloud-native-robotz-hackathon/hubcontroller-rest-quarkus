@@ -35,30 +35,36 @@ import jakarta.ws.rs.Produces;
 // The main controller, that passes RESTful calls on to the matching robot API
 public class RobotEndpoint {
 
+        private static final String RESPONSE_OK = "OK";
+
+        // The robot token being sent das parameter by the users
+        private static final String API_TOKEN = "user_key";
+
+        // endpoint for the Rest mockserver for automated testing
         @ConfigProperty(name = "quarkus.mockserver.endpoint")
         String mockServerEndpoint;
 
+        // the json map for specific mapping from Robot Token to Robot Address
         @ConfigProperty(name = "robot.map", defaultValue = "{}")
         String robotMap;
 
+        // The dashboard backend
         @Inject
         DashBoard dashBoard;
 
         @Inject
-        RobotStatus robotStatus;
-
-        final String API_TOKEN = "user_key";
+        RobotStatusController robotStatusController;
 
         @GET
         @Path("/status")
-        @Operation(summary = "Checks the Status of the API")
+        @Operation(summary = "Checks the status of the HubController")
         @Produces("text/html")
-        public String status(@RestQuery(API_TOKEN) String userKey) {
-                System.out.println(userKey + ": Status called");
+        public String status(
+                        @RestQuery(API_TOKEN) String userKey) {
 
-                robotStatus.addRobot(userKey);
-
-                return "OK";
+                System.out.println("Status called -> " + userKey);
+                robotStatusController.addRobot(userKey);
+                return RESPONSE_OK;
         }
 
         @GET
@@ -72,7 +78,7 @@ public class RobotEndpoint {
                 URI url = new URI(getRobotURLFromConfigMap(userKey));
                 System.out.println("Calling -> " + url);
 
-                if (robotStatus.addOrUpdateRobot(userKey, "remote_status"))
+                if (robotStatusController.addOrUpdateRobot(userKey, "remote_status"))
                         return "Robot Disconnected";
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -82,7 +88,7 @@ public class RobotEndpoint {
                 HttpResponse<String> response = HttpClient
                                 .newBuilder().build().send(request, BodyHandlers.ofString());
 
-                robotStatus.setStatus(userKey, true);
+                robotStatusController.setRobotStatus(userKey, true);
 
                 System.out.println("Response -> " + response.body());
                 return response.body();
@@ -97,7 +103,7 @@ public class RobotEndpoint {
 
                 System.out.println(userKey + ": forward called -> " + lengthInCm);
 
-                if (robotStatus.addOrUpdateRobot(userKey, "forward"))
+                if (robotStatusController.addOrUpdateRobot(userKey, "forward"))
                         return "Robot Disconnected";
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -118,7 +124,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": backward called -> " + lengthInCm);
-                if (robotStatus.addOrUpdateRobot(userKey, "backward"))
+                if (robotStatusController.addOrUpdateRobot(userKey, "backward"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/backward/" + lengthInCm))
@@ -138,7 +144,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": left called -> " + degrees);
-                if (robotStatus.addOrUpdateRobot(userKey, "left"))
+                if (robotStatusController.addOrUpdateRobot(userKey, "left"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/left/" + degrees))
@@ -158,7 +164,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": right called -> " + degrees);
-                if (robotStatus.addOrUpdateRobot(userKey, "right"))
+                if (robotStatusController.addOrUpdateRobot(userKey, "right"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/right/" + degrees))
@@ -179,7 +185,7 @@ public class RobotEndpoint {
 
                 System.out.println("disconnect called for robotId-> " + robotShortId);
 
-                boolean isDisconnected = robotStatus.disconnectRobot(robotShortId);
+                boolean isDisconnected = robotStatusController.disconnectRobot(robotShortId);
 
                 return isDisconnected;
         }
@@ -212,7 +218,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": camera called");
-                if (robotStatus.addOrUpdateRobot(userKey, "camera"))
+                if (robotStatusController.addOrUpdateRobot(userKey, "camera"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI(getRobotURLFromConfigMap(userKey) + "/camera"))

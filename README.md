@@ -1,6 +1,6 @@
 # hubcontroller-rest-quarkus
 
-![example workflow](https://github.com/cloud-native-robotz-hackathon/hubcontroller-rest-quarkus/actions/workflows/ci.yml/badge.svg)
+![test and build](https://github.com/cloud-native-robotz-hackathon/hubcontroller-rest-quarkus/actions/workflows/ci.yml/badge.svg)
 
 ## Setup Podman for local Testcontainer Tests
 
@@ -14,18 +14,23 @@
     export TESTCONTAINERS_RYUK_DISABLED=true
 
 ## Local run
+
 > quarkus dev
 
 ## Deploy to OpenShift
+
 > quarkus build -Dquarkus.openshift.deploy=true
 
 ## Local Testing
+
 curl -k http://localhost:8080/robot/remote_status\?user_key\=data
 
 ## CRC Testing
- curl -k http://hub-controller-quarkus-hubcontroller-dev.apps-crc.testing/robot/remote_status\?user_key\=data
 
- ## TODO
+curl -k http://hub-controller-quarkus-hubcontroller-dev.apps-crc.testing/robot/remote_status\?user_key\=data
+
+## TODO
+
 - Check Testing
 - Dashboard
 - Switch HubController

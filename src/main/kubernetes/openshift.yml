@@ -5,5 +5,5 @@ metadata:
 data:
   MAP: |
     {
-      "data": "data.lan"
+      "someRobotKey": "someRobotAddress"
     }
