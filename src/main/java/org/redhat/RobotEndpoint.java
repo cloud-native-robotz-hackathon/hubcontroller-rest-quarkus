@@ -13,6 +13,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.info.Info;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.RestPath;
 import org.jboss.resteasy.reactive.RestQuery;
@@ -60,7 +61,7 @@ public class RobotEndpoint {
         @Operation(summary = "Checks the status of the HubController")
         @Produces("text/html")
         public String status(
-                        @RestQuery(API_TOKEN) String userKey) {
+                        @Parameter(description = "The token of the robot", required = false) @RestQuery(API_TOKEN) String userKey) {
 
                 System.out.println("Status called -> " + userKey);
                 robotStatusController.addRobot(userKey);
@@ -71,7 +72,8 @@ public class RobotEndpoint {
         @Path("/remote_status")
         @Operation(summary = "Checks the status of connected robot")
         @Produces("text/html")
-        public String remoteStatus(@RestQuery(API_TOKEN) String userKey)
+        public String remoteStatus(
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
                         throws URISyntaxException, IOException, InterruptedException {
                 System.out.println(userKey + ": Remote Status called");
 
@@ -98,7 +100,9 @@ public class RobotEndpoint {
         @Path("/forward/{length_in_cm}")
         @Operation(summary = "Drives the robot forward by the indicated cm")
         @Produces("text/html")
-        public String forward(@RestForm(API_TOKEN) String userKey, @RestPath("length_in_cm") Integer lengthInCm)
+        public String forward(
+                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "The length to drive the robot forward", required = true) @RestPath("length_in_cm") Integer lengthInCm)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": forward called -> " + lengthInCm);
@@ -120,7 +124,9 @@ public class RobotEndpoint {
         @Path("/backward/{length_in_cm}")
         @Operation(summary = "Drives the robot backward by the indicated cm")
         @Produces("text/html")
-        public String backward(@RestForm(API_TOKEN) String userKey, @RestPath("length_in_cm") Integer lengthInCm)
+        public String backward(
+                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "The length to drive to robot backward", required = true) @RestPath("length_in_cm") Integer lengthInCm)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": backward called -> " + lengthInCm);
@@ -140,7 +146,9 @@ public class RobotEndpoint {
         @Path("/left/{degrees}")
         @Operation(summary = "Turns the robot left by the indicated degrees (positive)")
         @Produces("text/html")
-        public String left(@RestForm(API_TOKEN) String userKey, @RestPath("degrees") Integer degrees)
+        public String left(
+                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "Degrees to turn the robot left", required = true) @RestPath("degrees") Integer degrees)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": left called -> " + degrees);
@@ -160,7 +168,9 @@ public class RobotEndpoint {
         @Path("/right/{degrees}")
         @Operation(summary = "Turns the robot right by the indicated degrees (positive)")
         @Produces("text/html")
-        public String right(@RestForm(API_TOKEN) String userKey, @RestPath("degrees") Integer degrees)
+        public String right(
+                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "Degrees to turn the robot right", required = true) @RestPath("degrees") Integer degrees)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": right called -> " + degrees);
@@ -180,7 +190,8 @@ public class RobotEndpoint {
         @Path("/disconnect/{robotId}")
         @Operation(summary = "Disconnect Robot")
         @Produces("text/html")
-        public Boolean disconnect(@RestPath("robotId") String robotShortId)
+        public Boolean disconnect(
+                        @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println("disconnect called for robotId-> " + robotShortId);
@@ -194,7 +205,8 @@ public class RobotEndpoint {
         @Path("/runapp/{robotId}")
         @Operation(summary = "Disconnect Robot")
         @Produces("text/html")
-        public String runapp(@RestPath("robotId") String robotShortId)
+        public String runapp(
+                        @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println("runapp called for robotId-> " + robotShortId);
@@ -214,7 +226,8 @@ public class RobotEndpoint {
         @Path("/camera")
         @Operation(summary = "Get the current image from the camera")
         @Produces("text/html")
-        public String camera(@RestQuery(API_TOKEN) String userKey)
+        public String camera(
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
                         throws URISyntaxException, IOException, InterruptedException {
 
                 System.out.println(userKey + ": camera called");

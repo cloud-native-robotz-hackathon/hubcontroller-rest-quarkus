@@ -14,7 +14,7 @@ if (!connected) {
         connected = true;
         console.log("Connected to the web socket with clientId [" + clientId + "]");
         $("#connect").attr("disabled", true);
-        $("#connect").text("Connected");
+        $("#connect").text("Dashboard Connected");
     };
     socket.onmessage = function (m) {
         console.log("Got raw message: " + m.data);
@@ -43,7 +43,7 @@ if (!connected) {
 
                     `<div class="card-body">` +
                     `<i class="bi bi-robot card-img-top fs-1"></i>` +
-                    `<h5 class="card-title display-4"><div id="robotName">${robotName}</div></h5>` +
+                    `<h6 class="card-title display-4"><div id="robotName">${robotName}</div></h6>` +
                     `</div>` +
                     `<ul class="list-group list-group-light list-group-small">` +
                     ` <li class="list-group-item px-4">Status <i class="bi bi-circle-fill text-danger" id="${robotId}-status" ></i></li>` +
@@ -52,9 +52,8 @@ if (!connected) {
                     `<li class="list-group-item px-4">Last Operation : <span id="${robotId}-last-operation"></span></li>` +
                     ` </ul>` +
                     ` <div class="card-body d-grid gap-3">` +
-                    `<button type="submit" class="btn btn-secondary" onclick="disconnect('${robotId}')"><span class="bi bi-stop-circle"></span> <span id="${robotId}-disconnect-text"=>${connectedTitle}</span></button>` +
-                    `<button type="submit" class="btn btn-secondary" onclick="runApp('${robotId}')><span class="bi bi-play-circle"></span> Run Container` +
-                    `  App</button>` +
+                    `<button type="submit" class="btn btn-secondary" onclick="disconnect('${robotId}')"><span class="bi bi-plug-fill"></span> <span id="${robotId}-disconnect-text"=>${connectedTitle}</span></button>` +
+                    `<button type="submit" class="btn btn-secondary" onclick="runApp('${robotId}')"><span class="bi bi-play"></span> <span>Run Container App</span></button>` +
                     ` </div>` +
                     `</div>` +
 
@@ -72,15 +71,6 @@ if (!connected) {
 
 
         }
-
-
-
-
-
-
-        //$("#activity").removeClass("bi-x-circle-fill");
-        //$("#activity").addClass("bi-check-circle-fill");
-        //$("#activity").css({"font-size": "2rem", "color": "green"});
 
     };
 }
@@ -116,18 +106,19 @@ function disconnect(robotId) {
             console.error(status, error);
         }
     });
+}
 
-    function runApp(robotId) {
-        $.ajax({
-            url: location.protocol + '//' + location.host + '/runapp/' + robotId,
-            method: 'POST',
-            success: function (response) {
-                // Handle the API response here
-                console.log(response);
-            },
-            error: function (xhr, status, error) {
-                // Handle errors here
-                console.error(status, error);
-            }
-        });
-    }
+function runApp(robotId) {
+    $.ajax({
+        url: location.protocol + '//' + location.host + '/runapp/' + robotId,
+        method: 'POST',
+        success: function (response) {
+            // Handle the API response here
+            console.log(response);
+        },
+        error: function (xhr, status, error) {
+            // Handle errors here
+            console.error(status, error);
+        }
+    });
+}

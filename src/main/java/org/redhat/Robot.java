@@ -35,7 +35,7 @@ public class Robot {
 
     @Override
     public String toString() {
-        return "Robot [name=" + name + ", operation=" + operation + ", count=" + operationCount + ", Disconnected="
+        return "Robot [name=" + name + ", operation=" + operation + ", count=" + operationCount + ", isDisconnected="
                 + isDisconnected + ", status=" + status + "]";
     }
 
