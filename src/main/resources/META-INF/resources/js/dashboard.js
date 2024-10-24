@@ -110,7 +110,7 @@ function disconnect(robotId) {
 
 function runApp(robotId) {
     $.ajax({
-        url: location.protocol + '//' + location.host + '/runapp/' + robotId,
+        url: location.protocol + '//' + location.host + '/robot/runapp/' + robotId,
         method: 'POST',
         success: function (response) {
             // Handle the API response here
