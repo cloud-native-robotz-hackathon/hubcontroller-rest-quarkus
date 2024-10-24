@@ -101,7 +101,7 @@ public class RobotEndpoint {
         @Operation(summary = "Drives the robot forward by the indicated cm")
         @Produces("text/html")
         public String forward(
-                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey,
                         @Parameter(description = "The length to drive the robot forward", required = true) @RestPath("length_in_cm") Integer lengthInCm)
                         throws URISyntaxException, IOException, InterruptedException {
 
@@ -125,7 +125,7 @@ public class RobotEndpoint {
         @Operation(summary = "Drives the robot backward by the indicated cm")
         @Produces("text/html")
         public String backward(
-                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey,
                         @Parameter(description = "The length to drive to robot backward", required = true) @RestPath("length_in_cm") Integer lengthInCm)
                         throws URISyntaxException, IOException, InterruptedException {
 
@@ -147,7 +147,7 @@ public class RobotEndpoint {
         @Operation(summary = "Turns the robot left by the indicated degrees (positive)")
         @Produces("text/html")
         public String left(
-                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey,
                         @Parameter(description = "Degrees to turn the robot left", required = true) @RestPath("degrees") Integer degrees)
                         throws URISyntaxException, IOException, InterruptedException {
 
@@ -169,7 +169,7 @@ public class RobotEndpoint {
         @Operation(summary = "Turns the robot right by the indicated degrees (positive)")
         @Produces("text/html")
         public String right(
-                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey,
                         @Parameter(description = "Degrees to turn the robot right", required = true) @RestPath("degrees") Integer degrees)
                         throws URISyntaxException, IOException, InterruptedException {
 
