@@ -64,7 +64,7 @@ class RobotEndpointTest {
                 // create mock rest endpoint
                 mockServerClient
                                 .when(request()
-                                                .withPath("/forward/10")
+                                                .withPath("/forward/10?user_key=data")
                                                 .withMethod("POST"))
                                 .respond(
                                                 httpRequest -> response()
@@ -72,7 +72,7 @@ class RobotEndpointTest {
                                                                 .withHeader("Content-Type", "text/html")
                                                                 .withBody("OK"));
 
-                given().formParam("user_key", "data")
+                given().queryParam("user_key", "data")
                                 .when().post("/robot/forward/10")
                                 .then()
                                 .statusCode(200)
@@ -85,7 +85,7 @@ class RobotEndpointTest {
                 // create mock rest endpoint
                 mockServerClient
                                 .when(request()
-                                                .withPath("/backward/10")
+                                                .withPath("/backward/10?user_key=data")
                                                 .withMethod("POST"))
                                 .respond(
                                                 httpRequest -> response()
@@ -93,7 +93,7 @@ class RobotEndpointTest {
                                                                 .withHeader("Content-Type", "text/html")
                                                                 .withBody("OK"));
 
-                given().formParam("user_key", "data")
+                given().queryParam("user_key", "data")
                                 .when().post("/robot/backward/10")
                                 .then()
                                 .statusCode(200)
@@ -106,7 +106,7 @@ class RobotEndpointTest {
                 // create mock rest endpoint
                 mockServerClient
                                 .when(request()
-                                                .withPath("/left/10")
+                                                .withPath("/left/10?user_key=data")
                                                 .withMethod("POST"))
                                 .respond(
                                                 httpRequest -> response()
@@ -114,7 +114,7 @@ class RobotEndpointTest {
                                                                 .withHeader("Content-Type", "text/html")
                                                                 .withBody("OK"));
 
-                given().formParam("user_key", "data")
+                given().queryParam("user_key", "data")
                                 .when().post("/robot/left/10")
                                 .then()
                                 .statusCode(200)
@@ -127,7 +127,7 @@ class RobotEndpointTest {
                 // create mock rest endpoint
                 mockServerClient
                                 .when(request()
-                                                .withPath("/right/10")
+                                                .withPath("/right/10?user_key=data")
                                                 .withMethod("POST"))
                                 .respond(
                                                 httpRequest -> response()
@@ -135,7 +135,7 @@ class RobotEndpointTest {
                                                                 .withHeader("Content-Type", "text/html")
                                                                 .withBody("OK"));
 
-                given().formParam("user_key", "data")
+                given().queryParam("user_key", "data")
                                 .when().post("/robot/right/10")
                                 .then()
                                 .statusCode(200)
