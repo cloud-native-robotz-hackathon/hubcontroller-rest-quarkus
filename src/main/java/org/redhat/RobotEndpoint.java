@@ -206,14 +206,20 @@ public class RobotEndpoint {
         @Operation(summary = "Disconnect Robot")
         @Produces("text/html")
         public String runapp(
-                        @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotId)
+                        @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println("runapp called for robotId-> " + robotId);
+                System.out.println("runapp called for robotId- > " + robotShortId);
+
+                String robotId = robotStatusController.findRobotByShortName(robotShortId).getName();
+
+                System.out.println("runapp sesolving to robotId -> " + robotId);
+
+                System.out.println("Calling -> " + "http://starterapp-python.robot-app.apps."+robotId);
 
 
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI("http://starterapp-python.robot-app.apps."+robotId+".lan"))
+                                .uri(new URI("http://starterapp-python.robot-app.apps."+robotId))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .build();
                 HttpResponse<String> response = HttpClient

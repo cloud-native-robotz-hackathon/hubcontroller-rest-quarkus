@@ -80,7 +80,7 @@ public class RobotStatusController {
     }
 
     // Find robot by short name from Dashboard
-    private Robot findRobotByShortName(String shortId) {
+    public Robot findRobotByShortName(String shortId) {
         Robot robotMatch = robotList.stream()
                 .filter(robot -> shortId.equals(robot.getName().replace(".", "")))
                 .findAny()
