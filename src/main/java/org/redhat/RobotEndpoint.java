@@ -215,11 +215,11 @@ public class RobotEndpoint {
 
                 System.out.println("runapp sesolving to robotId -> " + robotId);
 
-                System.out.println("Calling -> " + "http://starterapp-python.robot-app.apps."+robotId);
+                System.out.println("Calling -> " + "http://starterapp-python.robot-app.apps."+robotId+"/run");
 
 
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI("http://starterapp-python.robot-app.apps."+robotId))
+                                .uri(new URI("http://starterapp-python.robot-app.apps."+robotId+"/run"))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .build();
                 HttpResponse<String> response = HttpClient
