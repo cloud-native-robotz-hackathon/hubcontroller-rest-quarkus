@@ -251,7 +251,7 @@ public class RobotEndpoint {
 
         private String getRobotURLFromConfigMap(String token) {
 
-                System.out.println("Launchmode -> " + LaunchMode.current());
+                //System.out.println("Launchmode -> " + LaunchMode.current());
                 if (mockServerEndpoint != null && LaunchMode.current().equals(LaunchMode.TEST)) {
                         System.out.println("Mock Endpoint -> " + mockServerEndpoint);
                         return mockServerEndpoint;
@@ -276,8 +276,9 @@ public class RobotEndpoint {
                         if (hostName != null)
                                 System.out.println("Got hostname match -> " + hostName);
                         else {
-                                System.out.println("No match, defaulting to token as hostname ->  " + hostName);
                                 hostName = token;
+                                System.out.println("No match, defaulting to token as hostname ->  " + hostName);
+
                         }
 
                 } catch (IOException e) {
@@ -285,6 +286,9 @@ public class RobotEndpoint {
                         e.printStackTrace();
                 }
 
-                return "http://" + hostName + ":5000";
+                String hostUrl = "http://" + hostName + ":5000";
+                System.out.println("Using url -> " + hostUrl);
+
+                return hostUrl;
         }
 }
