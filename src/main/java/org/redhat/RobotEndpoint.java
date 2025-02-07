@@ -96,6 +96,34 @@ public class RobotEndpoint {
                 return response.body();
         }
 
+        @GET
+        @Path("/distance")
+        @Operation(summary = "Checks the distance")
+        @Produces("text/html")
+        public String distance(
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
+                        throws URISyntaxException, IOException, InterruptedException {
+                System.out.println(userKey + ": Distance Status called");
+
+                URI url = new URI(getRobotURLFromConfigMap(userKey));
+                System.out.println("Calling -> " + url);
+
+                if (robotStatusController.addOrUpdateRobot(userKey, "distance"))
+                        return "Robot Disconnected";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(new URI(url + "/camera"))
+                                .GET()
+                                .build();
+                HttpResponse<String> response = HttpClient
+                                .newBuilder().build().send(request, BodyHandlers.ofString());
+
+                robotStatusController.setRobotStatus(userKey, true);
+
+                System.out.println("Response -> " + response.body());
+                return response.body();
+        }
+
         @POST
         @Path("/forward/{length_in_cm}")
         @Operation(summary = "Drives the robot forward by the indicated cm")
