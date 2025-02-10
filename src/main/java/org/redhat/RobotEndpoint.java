@@ -112,7 +112,7 @@ public class RobotEndpoint {
                         return "Robot Disconnected";
 
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(url + "/camera"))
+                                .uri(new URI(url + "/distance"))
                                 .GET()
                                 .build();
                 HttpResponse<String> response = HttpClient
