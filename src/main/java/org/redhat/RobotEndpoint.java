@@ -304,7 +304,7 @@ public class RobotEndpoint {
                         if (hostName != null)
                                 System.out.println("Got hostname match -> " + hostName);
                         else {
-                                hostName = token;
+                                hostName = addHostExtension(token);
                                 System.out.println("No match, defaulting to token as hostname ->  " + hostName);
 
                         }
@@ -318,5 +318,20 @@ public class RobotEndpoint {
                 System.out.println("Using url -> " + hostUrl);
 
                 return hostUrl;
+        }
+
+        private String addHostExtension(String host)
+        {
+                if (host.contains("."))
+                {
+                        System.out.println("Token propably IP, keeping as is");
+                        return host;
+                }
+                else
+                {
+                        System.out.println("Adding host extension -> .robot.svc.cluster.local." );
+                        return host + ".robot.svc.cluster.local.";
+                }
+
         }
 }
