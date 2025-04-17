@@ -7,7 +7,7 @@ console.log("Init");
 
 if (!connected) {
     var clientId = generateClientId(6);
-    socket = new WebSocket("ws://" + location.host + "/dashboard/" + clientId);
+    socket = new WebSocket("wss://" + location.host + "/dashboard/" + clientId);
     console.log("Trying to connect [" + clientId + "]");
 
     socket.onopen = function () {
