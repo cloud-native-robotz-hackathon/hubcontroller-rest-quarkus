@@ -243,12 +243,14 @@ public class RobotEndpoint {
 
                 System.out.println("runapp sesolving to robotId -> " + robotId);
 
-                System.out.println("Calling -> " + "http://starterapp-python-robot-app.apps."+robotId+"/run");
-
+                System.out.println("Calling -> " + "http://" + robotId
+                                + ".robot.svc.cluster.local./run  with header -> Host: starterapp-python-robot-app.apps."
+                                + robotId);
 
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI("http://starterapp-python-robot-app.apps."+robotId+"/run"))
+                                .uri(new URI("http://" + robotId + ".robot.svc.cluster.local./run"))
                                 .POST(HttpRequest.BodyPublishers.noBody())
+                                .headers("Host: starterapp-python-robot-app.apps." + robotId)
                                 .build();
                 HttpResponse<String> response = HttpClient
                                 .newBuilder().build().send(request, BodyHandlers.ofString());
@@ -279,7 +281,7 @@ public class RobotEndpoint {
 
         private String getRobotURLFromConfigMap(String token) {
 
-                //System.out.println("Launchmode -> " + LaunchMode.current());
+                // System.out.println("Launchmode -> " + LaunchMode.current());
                 if (mockServerEndpoint != null && LaunchMode.current().equals(LaunchMode.TEST)) {
                         System.out.println("Mock Endpoint -> " + mockServerEndpoint);
                         return mockServerEndpoint;
@@ -320,16 +322,12 @@ public class RobotEndpoint {
                 return hostUrl;
         }
 
-        private String addHostExtension(String host)
-        {
-                if (host.contains("."))
-                {
+        private String addHostExtension(String host) {
+                if (host.contains(".")) {
                         System.out.println("Token propably IP, keeping as is");
                         return host;
-                }
-                else
-                {
-                        System.out.println("Adding host extension -> .robot.svc.cluster.local." );
+                } else {
+                        System.out.println("Adding host extension -> .robot.svc.cluster.local.");
                         return host + ".robot.svc.cluster.local.";
                 }
 
