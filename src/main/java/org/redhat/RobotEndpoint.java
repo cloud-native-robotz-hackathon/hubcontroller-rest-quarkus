@@ -250,7 +250,7 @@ public class RobotEndpoint {
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI("http://" + robotId + ".robot.svc.cluster.local./run"))
                                 .POST(HttpRequest.BodyPublishers.noBody())
-                                .headers("Host: starterapp-python-robot-app.apps." + robotId)
+                                .headers("Host", "starterapp-python-robot-app.apps." + robotId)
                                 .build();
                 HttpResponse<String> response = HttpClient
                                 .newBuilder().build().send(request, BodyHandlers.ofString());
