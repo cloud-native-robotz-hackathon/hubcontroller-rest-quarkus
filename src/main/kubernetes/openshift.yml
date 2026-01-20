@@ -7,3 +7,13 @@ data:
     {
       "someRobotKey": "someRobotAddress"
     }
+---
+# Secret for dashboard authentication password
+# To override the default password, update the DASHBOARD_PASSWORD value
+kind: Secret
+apiVersion: v1
+metadata:
+  name: dashboard-auth-secret
+type: Opaque
+stringData:
+  DASHBOARD_PASSWORD: "robotadmin"
