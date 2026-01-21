@@ -3,37 +3,937 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Robo Hackathon Management Dashboard</title>
+  <title>Robo Hackathon Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2332;
+      --bg-card-hover: #222d3f;
+      --accent-primary: #00d4aa;
+      --accent-secondary: #0ea5e9;
+      --accent-warning: #f59e0b;
+      --accent-danger: #ef4444;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: #2d3a4f;
+      --shadow-glow: 0 0 30px rgba(0, 212, 170, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(ellipse at 10% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      filter: drop-shadow(0 0 8px rgba(0, 212, 170, 0.5));
+    }
+
+    .brand-text {
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text span {
+      color: var(--accent-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: var(--bg-card);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-danger);
+    }
+
+    .status-dot.connected {
+      background: var(--accent-primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0, 212, 170, 0); }
+    }
+
+    /* Main Content */
+    .main-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .robot-count {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Robot Grid */
+    .robot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Robot Card */
+    .robot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      animation: fadeSlideIn 0.4s ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .robot-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-4px);
+    }
+
+    .card-header {
+      padding: 1.5rem 1.5rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .robot-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--bg-primary);
+    }
+
+    .robot-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .robot-status-indicator.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+    }
+
+    .robot-status-indicator.online {
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+    }
+
+    .robot-status-indicator i {
+      font-size: 0.5rem;
+    }
+
+    .card-body {
+      padding: 0 1.5rem 1.5rem;
+    }
+
+    .robot-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      word-break: break-all;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-item {
+      background: var(--bg-secondary);
+      padding: 0.875rem;
+      border-radius: 10px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .stat-value.operation {
+      font-size: 0.85rem;
+      color: var(--accent-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .stat-value.operation i {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .stat-value.operation i.bi-arrow-up-circle-fill { color: var(--accent-primary); }
+    .stat-value.operation i.bi-arrow-down-circle-fill { color: var(--accent-warning); }
+    .stat-value.operation i.bi-arrow-left-circle-fill { color: #a78bfa; }
+    .stat-value.operation i.bi-arrow-right-circle-fill { color: #f472b6; }
+    .stat-value.operation i.bi-rulers { color: var(--accent-secondary); }
+    .stat-value.operation i.bi-wifi { color: var(--accent-primary); }
+    .stat-value.operation i.bi-camera-video-fill { color: #fb923c; }
+    .stat-value.operation i.bi-check-circle-fill { color: var(--accent-primary); }
+    .stat-value.operation i.bi-gear-fill { color: var(--text-muted); }
+
+    .card-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), #00b894);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    /* Stopwatch */
+    .stopwatch-section {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stopwatch-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .stopwatch-label i {
+      font-size: 0.8rem;
+    }
+
+    .stopwatch-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      padding: 0.5rem 0;
+      letter-spacing: 0.05em;
+    }
+
+    .stopwatch-display.running {
+      color: var(--accent-primary);
+    }
+
+    .stopwatch-controls {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .stopwatch-btn {
+      flex: 1;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .stopwatch-btn i {
+      font-size: 0.75rem;
+    }
+
+    .stopwatch-btn.start {
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    .stopwatch-btn.start:hover {
+      background: rgba(0, 212, 170, 0.25);
+      border-color: var(--accent-primary);
+    }
+
+    .stopwatch-btn.stop {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .stopwatch-btn.stop:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: var(--accent-warning);
+    }
+
+    .stopwatch-btn.reset {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .stopwatch-btn.reset:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--accent-danger);
+    }
+
+    .stopwatch-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Camera Toggle Switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+    }
+
+    .toggle-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--text-muted);
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: rgba(0, 212, 170, 0.2);
+      border-color: var(--accent-primary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+      background-color: var(--accent-primary);
+    }
+
+    /* Camera Section */
+    .camera-section {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .camera-section.visible {
+      display: block;
+      animation: fadeSlideIn 0.3s ease;
+    }
+
+    .camera-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .camera-label-text {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .camera-label i {
+      font-size: 0.8rem;
+    }
+
+    .camera-status {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+    }
+
+    .camera-status.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+    }
+
+    .camera-status.loading {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-warning);
+    }
+
+    .camera-view {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--bg-primary);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .camera-view img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .camera-placeholder {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .camera-placeholder i {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    /* Log Section - Only visible in fullscreen */
+    .log-section {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .log-section.visible {
+      display: block;
+      animation: fadeSlideIn 0.3s ease;
+    }
+
+    .log-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .log-label-text {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .log-label i {
+      font-size: 0.8rem;
+    }
+
+    .log-status {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+    }
+
+    .log-status.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+    }
+
+    .log-status.loading {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-warning);
+    }
+
+    .log-view {
+      width: 100%;
+      height: 200px;
+      background: var(--bg-primary);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .log-content {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .log-content::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    .log-content::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .log-content::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .log-placeholder {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .log-placeholder i {
+      font-size: 1.5rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    /* Fullscreen specific log styles */
+    .fullscreen-overlay .log-section {
+      display: block;
+    }
+
+    .fullscreen-overlay .log-view {
+      height: 250px;
+    }
+
+    /* Fullscreen Overlay */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .fullscreen-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .fullscreen-overlay .robot-card {
+      width: 100%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .fullscreen-overlay.active .robot-card {
+      transform: scale(1);
+    }
+
+    .fullscreen-overlay .robot-card:hover {
+      transform: none;
+    }
+
+    .fullscreen-overlay .card-header {
+      padding: 2rem 2rem 1.5rem;
+    }
+
+    .fullscreen-overlay .robot-icon {
+      width: 64px;
+      height: 64px;
+      font-size: 2rem;
+    }
+
+    .fullscreen-overlay .robot-name {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .fullscreen-overlay .card-body {
+      padding: 0 2rem 2rem;
+    }
+
+    .fullscreen-overlay .stats-grid {
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .fullscreen-overlay .stat-item {
+      padding: 1.25rem;
+    }
+
+    .fullscreen-overlay .stat-label {
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .fullscreen-overlay .stat-value {
+      font-size: 1.25rem;
+    }
+
+    .fullscreen-overlay .stopwatch-display {
+      font-size: 2.5rem;
+    }
+
+    .fullscreen-overlay .camera-view {
+      aspect-ratio: 16/9;
+    }
+
+    /* Fullscreen button in card header */
+    .card-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .fullscreen-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .fullscreen-btn:hover {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .fullscreen-btn.active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+
+    /* Empty State */
+    .empty-state {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 400px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+      
+      .brand-text {
+        font-size: 1rem;
+      }
+
+      .main-content {
+        padding: 1rem;
+      }
+
+      .robot-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
-<body class="bg-light">
-  <div class="navbar navbar-expand-lg navbar-dark bg-dark box-shadow">
-    <div class="container-fluid">
-      <span class="navbar-brand h1 my-0 mr-md-auto"><img src="rh-logo-hat.svg" width="40" height="40" alt=""
-          loading="lazy" style="margin-right : 1em">Robo Hackathon Management Dashboard</span>
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="/q/swagger-ui" target="_blank">Swagger UI</a>
-        </li>
-        <li class="nav-item">
-          <button id="connect" onclick="connect()" class="btn btn-secondary">Dashboard Connect</button>
-        </li>
-      </ul>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="brand">
+        <img src="rh-logo-hat.svg" alt="Red Hat Logo">
+        <div class="brand-text">Robo <span>Hackathon</span> Dashboard</div>
+      </div>
+      <div class="header-actions">
+        <div class="toggle-container">
+          <span class="toggle-label">
+            <i class="bi bi-camera-video"></i>
+            Camera
+          </span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="camera-toggle" onchange="toggleCameraView()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <a href="/q/swagger-ui" target="_blank" class="nav-link">
+          <i class="bi bi-code-slash"></i> API Docs
+        </a>
+        <div class="status-badge" id="connection-status">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <div class="row row-cols-1 row-cols-md-5 g-4 mt-1 ms-1" id="robotList">
+  <main class="main-content">
+    <div class="section-header">
+      <h1 class="section-title">Registered Robots</h1>
+      <span class="robot-count" id="robot-count">0 robots</span>
+    </div>
+    
+    <div class="robot-grid" id="robotList">
+      <div class="empty-state" id="empty-state">
+        <i class="bi bi-robot empty-icon"></i>
+        <div class="empty-title">No robots registered</div>
+        <div class="empty-text">Robots will appear here once they register via the <code>/control/eventId</code> endpoint</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Fullscreen Overlay -->
+  <div class="fullscreen-overlay" id="fullscreen-overlay" onclick="closeFullscreenOnOverlay(event)">
   </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-    crossorigin="anonymous"></script>
   <script src="js/dashboard.js" defer></script>
 </body>
 

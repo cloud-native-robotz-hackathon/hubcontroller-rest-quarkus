@@ -17,18 +17,49 @@ public class RobotStatusController {
         return robotList;
     }
 
-    // add a robot if it doesnt yet exists
-    // @returns wether the robot is current disconnected
-    public boolean addRobot(String name) {
-
+    // Register a new robot - only way to add robots to the system
+    // @returns true if robot was registered, false if already exists
+    public boolean registerRobot(String name) {
         Robot robotMatch = findRobotByName(name);
-        return addOrUpdate(name, null, robotMatch);
+        if (robotMatch == null) {
+            Robot newRobot = new Robot(name, null);
+            System.out.println("Registering new robot --> " + newRobot);
+            robotList.add(newRobot);
+            return true;
+        }
+        System.out.println("Robot already registered --> " + robotMatch);
+        return false;
     }
 
-    public boolean addOrUpdateRobot(String name, String operation) {
+    // Check if a robot exists
+    public boolean robotExists(String name) {
+        return findRobotByName(name) != null;
+    }
 
+    // Update robot operation - only updates if robot exists
+    // @returns true if robot is disconnected, false otherwise
+    // @throws IllegalArgumentException if robot doesn't exist
+    public boolean updateRobot(String name, String operation) {
         Robot robotMatch = findRobotByName(name);
-        return addOrUpdate(name, operation, robotMatch);
+        if (robotMatch == null) {
+            System.err.println("Robot not registered: " + name);
+            throw new IllegalArgumentException("Robot not registered: " + name);
+        }
+        System.out.println("Robot found, updating --> " + robotMatch);
+        robotMatch.setOperation(operation);
+        return robotMatch.isDisconnected();
+    }
+
+    // Check if robot is disconnected without updating operations
+    // @returns true if robot is disconnected, false otherwise
+    // @throws IllegalArgumentException if robot doesn't exist
+    public boolean isRobotDisconnected(String name) {
+        Robot robotMatch = findRobotByName(name);
+        if (robotMatch == null) {
+            System.err.println("Robot not registered: " + name);
+            throw new IllegalArgumentException("Robot not registered: " + name);
+        }
+        return robotMatch.isDisconnected();
     }
 
     // disconnect robot from user rest calls by shortid from Dashboard
@@ -66,18 +97,6 @@ public class RobotStatusController {
         return robotMatch;
     }
 
-    private boolean addOrUpdate(String name, String operation, Robot robotMatch) {
-        if (robotMatch == null) {
-
-            robotMatch = new Robot(name, operation);
-            System.out.println("Robot not found, adding --> " + robotMatch);
-            robotList.add(robotMatch);
-        } else {
-            System.out.println("Robot found, updating --> " + robotMatch);
-            robotMatch.setOperation(operation);
-        }
-        return robotMatch.isDisconnected();
-    }
 
     // Find robot by short name from Dashboard
     public Robot findRobotByShortName(String shortId) {

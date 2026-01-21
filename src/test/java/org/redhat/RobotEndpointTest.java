@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
 
@@ -20,6 +21,10 @@ import io.restassured.filter.log.ResponseLoggingFilter;
 
 class RobotEndpointTest {
 
+        // Default credentials for basic auth (matches application.properties)
+        private static final String AUTH_USER = "admin";
+        private static final String AUTH_PASSWORD = "robotadmin";
+
         static {
                 RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
                 RestAssured.filters(new ResponseLoggingFilter());
@@ -27,6 +32,28 @@ class RobotEndpointTest {
 
         @InjectMockServerClient
         MockServerClient mockServerClient;
+
+        @BeforeEach
+        void registerRobot() {
+                // Register the robot before each test via the eventId endpoint
+                // Control endpoints require authentication
+                given()
+                                .auth().basic(AUTH_USER, AUTH_PASSWORD)
+                                .queryParam("robot_name", "data")
+                                .when().get("/control/eventId")
+                                .then()
+                                .statusCode(200);
+        }
+
+        @Test
+        void testRobotEndpointStatusUnregistered() {
+                // Test that unregistered robot returns "Robot Not Registered"
+                given().queryParam("user_key", "unregistered_robot")
+                                .when().get("/robot/status")
+                                .then()
+                                .statusCode(200)
+                                .body(is("Robot Not Registered"));
+        }
 
         @Test
         void testRobotEndpointStatus() {
