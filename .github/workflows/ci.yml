@@ -36,7 +36,7 @@ jobs:
             -Dquarkus.container-image.push=true
             -Dquarkus.container-image.username=${{ secrets.QUAY_USER }}
             -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
-            -Dquarkus.container-image.image=quay.io/${{ github.repository }}:latest
+            -Dquarkus.container-image.image=quay.io/${{ github.repository }}:v3
             '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
       # Native build - requires Docker for both native compilation and image building
       - name: Build and push Native image (latest-native)
@@ -48,5 +48,5 @@ jobs:
             -Dquarkus.container-image.builder=docker
             -Dquarkus.container-image.username=${{ secrets.QUAY_USER }}
             -Dquarkus.container-image.password=${{ secrets.QUAY_TOKEN }}
-            -Dquarkus.container-image.image=quay.io/${{ github.repository }}:latest-native
+            -Dquarkus.container-image.image=quay.io/${{ github.repository }}:v3-native
             '-Dquarkus.container-image.labels."org.opencontainers.image.revision"='$GITHUB_SHA
