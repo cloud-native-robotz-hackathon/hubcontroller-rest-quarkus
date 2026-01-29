@@ -6,6 +6,8 @@ const stopwatches = {}; // Store stopwatch data for each robot
 const cameraIntervals = {}; // Store camera refresh intervals for each robot
 const logIntervals = {}; // Store log refresh intervals for each robot
 const statusIntervals = {}; // Store status polling intervals for each robot
+const appRunningState = {}; // Track app running state for each robot
+const robotTimes = {}; // Store last recorded times for leaderboard { robotId: { name: string, time: ms } }
 let cameraEnabled = false; // Global camera toggle state
 const CAMERA_REFRESH_INTERVAL = 1000; // Refresh camera every 1 second
 const LOG_REFRESH_INTERVAL = 3000; // Refresh logs every 3 seconds
@@ -57,6 +59,7 @@ class Stopwatch {
     }
 
     updateDisplay() {
+        // Update main display
         const display = document.getElementById(`${this.robotId}-stopwatch-display`);
         if (display) {
             display.textContent = this.formatTime(this.elapsedTime);
@@ -66,17 +69,30 @@ class Stopwatch {
                 display.classList.remove('running');
             }
         }
+        
+        // Also update fullscreen display if it exists
+        const fsDisplay = document.getElementById(`fs-${this.robotId}-stopwatch-display`);
+        if (fsDisplay) {
+            fsDisplay.textContent = this.formatTime(this.elapsedTime);
+            if (this.running) {
+                fsDisplay.classList.add('running');
+            } else {
+                fsDisplay.classList.remove('running');
+            }
+        }
     }
 
     updateUI() {
-        const startBtn = document.getElementById(`${this.robotId}-stopwatch-start`);
-        const stopBtn = document.getElementById(`${this.robotId}-stopwatch-stop`);
+        // Update reset button state (only button remaining)
         const resetBtn = document.getElementById(`${this.robotId}-stopwatch-reset`);
-
-        if (startBtn && stopBtn && resetBtn) {
-            startBtn.disabled = this.running;
-            stopBtn.disabled = !this.running;
-            resetBtn.disabled = this.running && this.elapsedTime === 0;
+        if (resetBtn) {
+            resetBtn.disabled = this.running;
+        }
+        
+        // Also update fullscreen reset button if it exists
+        const fsResetBtn = document.getElementById(`fs-${this.robotId}-stopwatch-reset`);
+        if (fsResetBtn) {
+            fsResetBtn.disabled = this.running;
         }
     }
 
@@ -103,7 +119,26 @@ function startStopwatch(robotId) {
 
 function stopStopwatch(robotId) {
     if (stopwatches[robotId]) {
-        stopwatches[robotId].stop();
+        const stopwatch = stopwatches[robotId];
+        stopwatch.stop();
+        
+        // Record the time for leaderboard if there's a valid time
+        if (stopwatch.elapsedTime > 0) {
+            // Find the robot name for this robotId
+            let robotName = robotId;
+            robotSet.forEach(name => {
+                if (name.replace(/\./g, '') === robotId) {
+                    robotName = name;
+                }
+            });
+            
+            robotTimes[robotId] = {
+                name: robotName,
+                time: stopwatch.elapsedTime
+            };
+            
+            updateLeaderboard();
+        }
     }
 }
 
@@ -111,6 +146,67 @@ function resetStopwatch(robotId) {
     if (stopwatches[robotId]) {
         stopwatches[robotId].reset();
     }
+}
+
+// Leaderboard functions
+function updateLeaderboard() {
+    const leaderboardBody = document.getElementById('leaderboard-body');
+    const emptyState = document.getElementById('leaderboard-empty');
+    
+    // Convert robotTimes to array and sort by time (lowest first)
+    const sortedTimes = Object.entries(robotTimes)
+        .map(([robotId, data]) => ({
+            robotId,
+            name: data.name,
+            time: data.time
+        }))
+        .sort((a, b) => a.time - b.time);
+    
+    if (sortedTimes.length === 0) {
+        if (emptyState) emptyState.style.display = 'block';
+        // Remove any existing items
+        const existingItems = leaderboardBody.querySelectorAll('.leaderboard-item');
+        existingItems.forEach(item => item.remove());
+        return;
+    }
+    
+    // Hide empty state
+    if (emptyState) emptyState.style.display = 'none';
+    
+    // Build leaderboard HTML
+    let html = '';
+    sortedTimes.forEach((entry, index) => {
+        const rank = index + 1;
+        const formattedTime = formatLeaderboardTime(entry.time);
+        
+        html += `
+            <div class="leaderboard-item" data-robot-id="${entry.robotId}">
+                <div class="leaderboard-rank">${rank}</div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name" title="${entry.name}">${entry.name}</div>
+                    <div class="leaderboard-time">${formattedTime}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Update the leaderboard (keep empty state element)
+    const existingItems = leaderboardBody.querySelectorAll('.leaderboard-item');
+    existingItems.forEach(item => item.remove());
+    leaderboardBody.insertAdjacentHTML('beforeend', html);
+}
+
+function formatLeaderboardTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const centiseconds = Math.floor((ms % 1000) / 10);
+
+    if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
 }
 
 // Camera functions
@@ -647,13 +743,19 @@ function createRobotCard(robotName, robotId, robotMessage) {
                     <i class="bi bi-robot"></i>
                 </div>
                 <div class="card-header-actions">
+                    <div class="status-badges">
+                        <div class="skupper-status-indicator" id="${robotId}-skupper-badge">
+                            <i class="bi bi-link-45deg"></i>
+                            <span id="${robotId}-skupper-text">Skupper OK</span>
+                        </div>
+                        <div class="robot-status-indicator ${statusClass}" id="${robotId}-status-badge">
+                            <i class="bi bi-circle-fill"></i>
+                            <span id="${robotId}-status-text">${statusText}</span>
+                        </div>
+                    </div>
                     <button class="fullscreen-btn" id="${robotId}-fullscreen-btn" onclick="toggleFullscreen('${robotId}', '${robotName}')" title="Toggle fullscreen">
                         <i class="bi bi-arrows-fullscreen"></i>
                     </button>
-                    <div class="robot-status-indicator ${statusClass}" id="${robotId}-status-badge">
-                        <i class="bi bi-circle-fill"></i>
-                        <span id="${robotId}-status-text">${statusText}</span>
-                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -707,14 +809,6 @@ function createRobotCard(robotName, robotId, robotMessage) {
                     </div>
                     <div class="stopwatch-display" id="${robotId}-stopwatch-display">00:00.00</div>
                     <div class="stopwatch-controls">
-                        <button class="stopwatch-btn start" id="${robotId}-stopwatch-start" onclick="startStopwatch('${robotId}')">
-                            <i class="bi bi-play-fill"></i>
-                            Start
-                        </button>
-                        <button class="stopwatch-btn stop" id="${robotId}-stopwatch-stop" onclick="stopStopwatch('${robotId}')" disabled>
-                            <i class="bi bi-pause-fill"></i>
-                            Stop
-                        </button>
                         <button class="stopwatch-btn reset" id="${robotId}-stopwatch-reset" onclick="resetStopwatch('${robotId}')">
                             <i class="bi bi-arrow-counterclockwise"></i>
                             Reset
@@ -726,7 +820,7 @@ function createRobotCard(robotName, robotId, robotMessage) {
                         <i class="bi bi-plug-fill"></i>
                         <span id="${robotId}-disconnect-text">${buttonText}</span>
                     </button>
-                    <button class="btn btn-primary" onclick="runApp('${robotId}')">
+                    <button class="btn btn-primary" onclick="toggleApp('${robotId}')">
                         <i class="bi bi-play-fill"></i>
                         Run App
                     </button>
@@ -882,36 +976,117 @@ function disconnect(robotId) {
     });
 }
 
+function toggleApp(robotId) {
+    const isRunning = appRunningState[robotId] || false;
+    
+    if (isRunning) {
+        stopApp(robotId);
+    } else {
+        runApp(robotId);
+    }
+}
+
 function runApp(robotId) {
-    const btn = $(`button[onclick="runApp('${robotId}')"]`);
-    const originalHtml = btn.html();
+    const btn = $(`button[onclick="toggleApp('${robotId}')"]`);
     
     btn.prop('disabled', true);
-    btn.html('<i class="bi bi-hourglass-split"></i> Running...');
+    btn.html('<i class="bi bi-hourglass-split"></i> Starting...');
     
     $.ajax({
         url: location.protocol + '//' + location.host + '/robot/runapp/' + robotId,
         method: 'POST',
         success: function (response) {
             console.log("Run app response:", response);
+            
+            // Update state to running
+            appRunningState[robotId] = true;
+            
+            // Start the stopwatch when app starts successfully
+            startStopwatch(robotId);
+            
+            // Show success briefly, then update to Stop App button
             btn.html('<i class="bi bi-check-lg"></i> Started!');
             setTimeout(() => {
-                btn.html(originalHtml);
-            }, 2000);
+                updateAppButton(robotId, true);
+                btn.prop('disabled', false);
+            }, 1000);
         },
         error: function (xhr, status, error) {
             console.error("Run app error:", status, error);
             btn.html('<i class="bi bi-x-lg"></i> Error');
             setTimeout(() => {
-                btn.html(originalHtml);
-            }, 2000);
-        },
-        complete: function() {
-            setTimeout(() => {
+                updateAppButton(robotId, false);
                 btn.prop('disabled', false);
             }, 2000);
         }
     });
+}
+
+function stopApp(robotId) {
+    const btn = $(`button[onclick="toggleApp('${robotId}')"]`);
+    
+    btn.prop('disabled', true);
+    btn.html('<i class="bi bi-hourglass-split"></i> Stopping...');
+    
+    $.ajax({
+        url: location.protocol + '//' + location.host + '/robot/stopapp/' + robotId,
+        method: 'POST',
+        success: function (response) {
+            console.log("Stop app response:", response);
+            
+            // Update state to stopped
+            appRunningState[robotId] = false;
+            
+            // Stop the stopwatch when app stops successfully
+            stopStopwatch(robotId);
+            
+            // Show success briefly, then update to Run App button
+            btn.html('<i class="bi bi-check-lg"></i> Stopped!');
+            setTimeout(() => {
+                updateAppButton(robotId, false);
+                btn.prop('disabled', false);
+            }, 1000);
+        },
+        error: function (xhr, status, error) {
+            console.error("Stop app error:", status, error);
+            
+            // Still stop the stopwatch and update state even if there's an error
+            appRunningState[robotId] = false;
+            stopStopwatch(robotId);
+            
+            btn.html('<i class="bi bi-x-lg"></i> Error');
+            setTimeout(() => {
+                updateAppButton(robotId, false);
+                btn.prop('disabled', false);
+            }, 2000);
+        }
+    });
+}
+
+function updateAppButton(robotId, isRunning) {
+    // Update main button
+    const btn = $(`button[onclick="toggleApp('${robotId}')"]`);
+    if (btn.length) {
+        if (isRunning) {
+            btn.removeClass('btn-primary').addClass('btn-danger');
+            btn.html('<i class="bi bi-stop-fill"></i> Stop App');
+        } else {
+            btn.removeClass('btn-danger').addClass('btn-primary');
+            btn.html('<i class="bi bi-play-fill"></i> Run App');
+        }
+    }
+    
+    // Update fullscreen button if exists
+    const fsBtn = $(`#fullscreen-card-${robotId} button[onclick="toggleApp('${robotId}')"]`);
+    if (fsBtn.length) {
+        if (isRunning) {
+            fsBtn.removeClass('btn-primary').addClass('btn-danger');
+            fsBtn.html('<i class="bi bi-stop-fill"></i> Stop App');
+        } else {
+            fsBtn.removeClass('btn-danger').addClass('btn-primary');
+            fsBtn.html('<i class="bi bi-play-fill"></i> Run App');
+        }
+    }
 }
 
 // Start the WebSocket connection when the page loads

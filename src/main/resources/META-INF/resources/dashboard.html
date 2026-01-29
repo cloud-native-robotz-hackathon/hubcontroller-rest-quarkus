@@ -135,9 +135,16 @@
 
     /* Main Content */
     .main-content {
-      max-width: 1600px;
+      max-width: 1800px;
       margin: 0 auto;
       padding: 2rem;
+      display: flex;
+      gap: 2rem;
+    }
+
+    .robots-section {
+      flex: 1;
+      min-width: 0;
     }
 
     .section-header {
@@ -164,6 +171,151 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.5rem;
+    }
+
+    /* Leaderboard */
+    .leaderboard-section {
+      width: 320px;
+      flex-shrink: 0;
+    }
+
+    .leaderboard-container {
+      position: sticky;
+      top: 90px;
+    }
+
+    .leaderboard {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .leaderboard-header {
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(14, 165, 233, 0.1));
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .leaderboard-header i {
+      font-size: 1.25rem;
+      color: var(--accent-primary);
+    }
+
+    .leaderboard-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .leaderboard-body {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+
+    .leaderboard-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .leaderboard-body::-webkit-scrollbar-track {
+      background: var(--bg-card);
+    }
+
+    .leaderboard-body::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .leaderboard-empty {
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .leaderboard-empty i {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.75rem;
+      opacity: 0.5;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+
+    .leaderboard-item:last-child {
+      border-bottom: none;
+    }
+
+    .leaderboard-item:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .leaderboard-rank {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-right: 1rem;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+    }
+
+    .leaderboard-item:nth-child(1) .leaderboard-rank {
+      background: linear-gradient(135deg, #ffd700, #ffb700);
+      color: var(--bg-primary);
+    }
+
+    .leaderboard-item:nth-child(2) .leaderboard-rank {
+      background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
+      color: var(--bg-primary);
+    }
+
+    .leaderboard-item:nth-child(3) .leaderboard-rank {
+      background: linear-gradient(135deg, #cd7f32, #b87333);
+      color: var(--bg-primary);
+    }
+
+    .leaderboard-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .leaderboard-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 0.2rem;
+    }
+
+    .leaderboard-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    .leaderboard-no-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Robot Card */
@@ -237,6 +389,25 @@
 
     .robot-status-indicator i {
       font-size: 0.5rem;
+    }
+
+    /* Skupper Status Indicator */
+    .skupper-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(14, 165, 233, 0.15);
+      color: var(--accent-secondary);
+    }
+
+    .skupper-status-indicator i {
+      font-size: 0.6rem;
     }
 
     .card-body {
@@ -386,11 +557,11 @@
       display: flex;
       gap: 0.5rem;
       margin-top: 0.75rem;
+      justify-content: center;
     }
 
     .stopwatch-btn {
-      flex: 1;
-      padding: 0.5rem;
+      padding: 0.5rem 1rem;
       border: none;
       border-radius: 8px;
       font-family: 'Outfit', sans-serif;
@@ -410,28 +581,6 @@
       font-size: 0.75rem;
     }
 
-    .stopwatch-btn.start {
-      background: rgba(0, 212, 170, 0.15);
-      color: var(--accent-primary);
-      border: 1px solid rgba(0, 212, 170, 0.3);
-    }
-
-    .stopwatch-btn.start:hover {
-      background: rgba(0, 212, 170, 0.25);
-      border-color: var(--accent-primary);
-    }
-
-    .stopwatch-btn.stop {
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--accent-warning);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    .stopwatch-btn.stop:hover {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: var(--accent-warning);
-    }
-
     .stopwatch-btn.reset {
       background: rgba(239, 68, 68, 0.15);
       color: var(--accent-danger);
@@ -446,6 +595,17 @@
     .stopwatch-btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
+    }
+
+    /* Stop App button styling */
+    .btn-danger {
+      background: linear-gradient(135deg, var(--accent-danger), #dc2626);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+      transform: translateY(-2px);
     }
 
     /* Camera Toggle Switch */
@@ -806,6 +966,14 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .status-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .fullscreen-btn {
@@ -820,6 +988,7 @@
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
+      margin-left: 0.5rem;
     }
 
     .fullscreen-btn:hover {
@@ -864,6 +1033,26 @@
     }
 
     /* Responsive */
+    @media (max-width: 1200px) {
+      .main-content {
+        flex-direction: column;
+      }
+
+      .leaderboard-section {
+        width: 100%;
+        order: -1;
+      }
+
+      .leaderboard-container {
+        position: relative;
+        top: 0;
+      }
+
+      .leaderboard-body {
+        max-height: 300px;
+      }
+    }
+
     @media (max-width: 768px) {
       .header {
         padding: 1rem;
@@ -888,7 +1077,7 @@
   <header class="header">
     <div class="header-content">
       <div class="brand">
-        <img src="rh-logo-hat.svg" alt="Red Hat Logo">
+        <img src="image.png" alt="Robot Hackathon Logo">
         <div class="brand-text">Robo <span>Hackathon</span> Dashboard</div>
       </div>
       <div class="header-actions">
@@ -914,18 +1103,37 @@
   </header>
 
   <main class="main-content">
-    <div class="section-header">
-      <h1 class="section-title">Registered Robots</h1>
-      <span class="robot-count" id="robot-count">0 robots</span>
-    </div>
-    
-    <div class="robot-grid" id="robotList">
-      <div class="empty-state" id="empty-state">
-        <i class="bi bi-robot empty-icon"></i>
-        <div class="empty-title">No robots registered</div>
-        <div class="empty-text">Robots will appear here once they register via the <code>/control/eventId</code> endpoint</div>
+    <div class="robots-section">
+      <div class="section-header">
+        <h1 class="section-title">Registered Robots</h1>
+        <span class="robot-count" id="robot-count">0 robots</span>
+      </div>
+      
+      <div class="robot-grid" id="robotList">
+        <div class="empty-state" id="empty-state">
+          <i class="bi bi-robot empty-icon"></i>
+          <div class="empty-title">No robots registered</div>
+          <div class="empty-text">Robots will appear here once they register via the <code>/control/eventId</code> endpoint</div>
+        </div>
       </div>
     </div>
+
+    <aside class="leaderboard-section">
+      <div class="leaderboard-container">
+        <div class="leaderboard">
+          <div class="leaderboard-header">
+            <i class="bi bi-trophy-fill"></i>
+            <h2 class="leaderboard-title">Leaderboard</h2>
+          </div>
+          <div class="leaderboard-body" id="leaderboard-body">
+            <div class="leaderboard-empty" id="leaderboard-empty">
+              <i class="bi bi-stopwatch"></i>
+              No times recorded yet
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
   </main>
 
   <!-- Fullscreen Overlay -->

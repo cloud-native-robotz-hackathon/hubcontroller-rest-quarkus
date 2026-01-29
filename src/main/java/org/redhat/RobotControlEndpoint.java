@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
+import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -35,6 +39,9 @@ public class RobotControlEndpoint {
     private static final String SKUPPER_TYPE_LABEL = "skupper.io/type";
     private static final String CONNECTION_TOKEN_REQUEST = "connection-token-request";
 
+    // Skupper site ConfigMap name
+    private static final String SKUPPER_SITE_CONFIGMAP = "skupper-site";
+
     @Inject
     RobotStatusController robotStatusController;
 
@@ -46,7 +53,7 @@ public class RobotControlEndpoint {
     @Operation(summary = "Returns a unique event ID and optionally registers a new robot. Creates a Skupper connection token request secret if it doesn't exist.")
     @Produces(MediaType.TEXT_PLAIN)
     public String getEventId(
-            @Parameter(description = "Robot name to register (optional)", required = false) 
+            @Parameter(description = "Robot name to register", required = true) 
             @RestQuery("robot_name") String robotName) {
         
         if (robotName != null && !robotName.isBlank()) {
@@ -57,11 +64,102 @@ public class RobotControlEndpoint {
                 System.out.println("Robot '" + robotName + "' already registered, returning eventId: " + eventId);
             }
 
+            // Ensure namespace exists
+            ensureNamespaceExists();
+
+            // Ensure Skupper site ConfigMap exists
+            ensureSkupperSiteConfigMapExists();
+
             // Check if secret exists in the robot namespace, create if not
             ensureRobotSecretExists(robotName);
         }
         
         return eventId;
+    }
+
+    /**
+     * Ensures the robot namespace exists.
+     * Creates it if it doesn't exist.
+     */
+    private void ensureNamespaceExists() {
+        try {
+            Namespace existingNamespace = openShiftClient.namespaces()
+                    .withName(ROBOT_NAMESPACE)
+                    .get();
+
+            if (existingNamespace != null) {
+                System.out.println("Namespace '" + ROBOT_NAMESPACE + "' already exists");
+                return;
+            }
+
+            // Create the namespace
+            Namespace newNamespace = new NamespaceBuilder()
+                    .withNewMetadata()
+                        .withName(ROBOT_NAMESPACE)
+                    .endMetadata()
+                    .build();
+
+            openShiftClient.namespaces()
+                    .resource(newNamespace)
+                    .create();
+
+            System.out.println("Created namespace '" + ROBOT_NAMESPACE + "'");
+
+        } catch (Exception e) {
+            System.err.println("Error ensuring namespace exists: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Ensures the Skupper site ConfigMap exists in the robot namespace.
+     * Creates it with the required Skupper configuration if it doesn't exist.
+     */
+    private void ensureSkupperSiteConfigMapExists() {
+        try {
+            ConfigMap existingConfigMap = openShiftClient.configMaps()
+                    .inNamespace(ROBOT_NAMESPACE)
+                    .withName(SKUPPER_SITE_CONFIGMAP)
+                    .get();
+
+            if (existingConfigMap != null) {
+                System.out.println("ConfigMap '" + SKUPPER_SITE_CONFIGMAP + "' already exists in namespace '" + ROBOT_NAMESPACE + "'");
+                return;
+            }
+
+            // Create the Skupper site ConfigMap with required configuration
+            ConfigMap skupperSiteConfigMap = new ConfigMapBuilder()
+                    .withNewMetadata()
+                        .withName(SKUPPER_SITE_CONFIGMAP)
+                        .withNamespace(ROBOT_NAMESPACE)
+                    .endMetadata()
+                    .addToData("cluster-permissions", "false")
+                    .addToData("console", "true")
+                    .addToData("console-authentication", "internal")
+                    .addToData("console-password", "")
+                    .addToData("console-user", "")
+                    .addToData("enable-skupper-events", "true")
+                    .addToData("flow-collector", "true")
+                    .addToData("ingress", "route")
+                    .addToData("name", "data-center")
+                    .addToData("router-console", "false")
+                    .addToData("router-logging", "")
+                    .addToData("router-mode", "interior")
+                    .addToData("service-controller", "true")
+                    .addToData("service-sync", "true")
+                    .build();
+
+            openShiftClient.configMaps()
+                    .inNamespace(ROBOT_NAMESPACE)
+                    .resource(skupperSiteConfigMap)
+                    .create();
+
+            System.out.println("Created Skupper site ConfigMap '" + SKUPPER_SITE_CONFIGMAP + "' in namespace '" + ROBOT_NAMESPACE + "'");
+
+        } catch (Exception e) {
+            System.err.println("Error ensuring Skupper site ConfigMap exists: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**

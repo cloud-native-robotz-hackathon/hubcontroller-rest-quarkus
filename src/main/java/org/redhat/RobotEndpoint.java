@@ -255,7 +255,7 @@ public class RobotEndpoint {
 
         @POST
         @Path("/runapp/{robotId}")
-        @Operation(summary = "Disconnect Robot")
+        @Operation(summary = "Run the application on the robot")
         @Produces("text/html")
         public String runapp(
                         @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
@@ -273,6 +273,35 @@ public class RobotEndpoint {
 
                 HttpRequest request = HttpRequest.newBuilder()
                                 .uri(new URI("http://" + robotId + ".robot.svc.cluster.local./run"))
+                                .POST(HttpRequest.BodyPublishers.noBody())
+                                .headers("Host", "starterapp-python-robot-app.apps." + robotId)
+                                .build();
+                HttpResponse<String> response = HttpClient
+                                .newBuilder().build().send(request, BodyHandlers.ofString());
+
+                return response.body();
+        }
+
+        @POST
+        @Path("/stopapp/{robotId}")
+        @Operation(summary = "Stop the application on the robot")
+        @Produces("text/html")
+        public String stopapp(
+                        @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
+                        throws URISyntaxException, IOException, InterruptedException {
+
+                System.out.println("stopapp called for robotId- > " + robotShortId);
+
+                String robotId = robotStatusController.findRobotByShortName(robotShortId).getName();
+
+                System.out.println("stopapp resolving to robotId -> " + robotId);
+
+                System.out.println("Calling -> " + "http://" + robotId
+                                + ".robot.svc.cluster.local./stop  with header -> Host: starterapp-python-robot-app.apps."
+                                + robotId);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(new URI("http://" + robotId + ".robot.svc.cluster.local./stop"))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .headers("Host", "starterapp-python-robot-app.apps." + robotId)
                                 .build();
