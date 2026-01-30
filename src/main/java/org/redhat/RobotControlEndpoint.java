@@ -65,7 +65,7 @@ public class RobotControlEndpoint {
             }
 
             // Ensure namespace exists
-            ensureNamespaceExists();
+            // ensureNamespaceExists();
 
             // Ensure Skupper site ConfigMap exists
             ensureSkupperSiteConfigMapExists();
@@ -140,7 +140,7 @@ public class RobotControlEndpoint {
                     .addToData("console-user", "")
                     .addToData("enable-skupper-events", "true")
                     .addToData("flow-collector", "true")
-                    .addToData("ingress", "route")
+                    .addToData("ingress", "loadbalancer")
                     .addToData("name", "data-center")
                     .addToData("router-console", "false")
                     .addToData("router-logging", "")
@@ -215,12 +215,12 @@ public class RobotControlEndpoint {
                     .build();
         }
 
-        System.out.println("Fetching secret '" + robotName + "' in namespace '" + robotName + "'");
+        System.out.println("Fetching secret '" + robotName + "' in namespace '" + ROBOT_NAMESPACE + "'");
 
         try {
             // Fetch the secret from OpenShift (robot_name is both namespace and secret name)
             Secret secret = openShiftClient.secrets()
-                    .inNamespace(robotName)
+                    .inNamespace(ROBOT_NAMESPACE)
                     .withName(robotName)
                     .get();
 
