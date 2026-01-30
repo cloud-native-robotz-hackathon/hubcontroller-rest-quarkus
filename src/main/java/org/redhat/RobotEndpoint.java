@@ -75,31 +75,35 @@ public class RobotEndpoint {
         @Operation(summary = "Checks the status of connected robot")
         @Produces("text/html")
         public String remoteStatus(
-                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
-                        throws URISyntaxException, IOException, InterruptedException {
-                System.out.println(userKey + ": Remote Status called");
-
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey) {
+                
                 if (!robotStatusController.robotExists(userKey))
                         return "Robot Not Registered";
-
-                URI url = new URI(getRobotURLFromConfigMap(userKey));
-                System.out.println("Calling -> " + url);
 
                 // Remote status calls don't count as operations - just check if disconnected
                 if (robotStatusController.isRobotDisconnected(userKey))
                         return "Robot Disconnected";
 
-                HttpRequest request = HttpRequest.newBuilder()
-                                .uri(url)
-                                .GET()
-                                .build();
-                HttpResponse<String> response = HttpClient
-                                .newBuilder().build().send(request, BodyHandlers.ofString());
+                String urlString = getRobotURLFromConfigMap(userKey);
+                try {
+                        URI url = new URI(urlString);
 
-                robotStatusController.setRobotStatus(userKey, true);
+                        HttpRequest request = HttpRequest.newBuilder()
+                                        .uri(url)
+                                        .GET()
+                                        .build();
+                        HttpResponse<String> response = HttpClient
+                                        .newBuilder().build().send(request, BodyHandlers.ofString());
 
-                System.out.println("Response -> " + response.body());
-                return response.body();
+                        robotStatusController.setRobotStatus(userKey, true);
+
+                        return response.body();
+                } catch (Exception e) {
+                        // Log connection errors concisely - these are expected when robot is offline
+                        System.out.println(userKey + ": Connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        robotStatusController.setRobotStatus(userKey, false);
+                        return "Connection Error";
+                }
         }
 
         @GET
@@ -316,10 +320,7 @@ public class RobotEndpoint {
         @Operation(summary = "Get the current image from the camera")
         @Produces("text/html")
         public String camera(
-                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
-                        throws URISyntaxException, IOException, InterruptedException {
-
-                System.out.println(userKey + ": camera called");
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey) {
 
                 if (!robotStatusController.robotExists(userKey))
                         return "Robot Not Registered";
@@ -328,14 +329,21 @@ public class RobotEndpoint {
                 if (robotStatusController.isRobotDisconnected(userKey))
                         return "Robot Disconnected";
 
-                HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(getRobotURLFromConfigMap(userKey) + "/camera"))
-                                .GET()
-                                .build();
-                HttpResponse<String> response = HttpClient
-                                .newBuilder().build().send(request, BodyHandlers.ofString());
+                String urlString = getRobotURLFromConfigMap(userKey) + "/camera";
+                try {
+                        HttpRequest request = HttpRequest.newBuilder()
+                                        .uri(new URI(urlString))
+                                        .GET()
+                                        .build();
+                        HttpResponse<String> response = HttpClient
+                                        .newBuilder().build().send(request, BodyHandlers.ofString());
 
-                return response.body();
+                        return response.body();
+                } catch (Exception e) {
+                        // Log connection errors concisely - these are expected when robot is offline
+                        System.out.println(userKey + ": Camera connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        return "Connection Error";
+                }
         }
 
         private String getRobotURLFromConfigMap(String token) {
