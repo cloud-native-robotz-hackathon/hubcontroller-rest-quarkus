@@ -1,10 +1,8 @@
 package org.redhat;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+import io.fabric8.kubernetes.client.utils.Serialization;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
@@ -203,10 +201,10 @@ public class RobotControlEndpoint {
 
     @GET
     @Path("/getToken")
-    @Operation(summary = "Returns the base64 encoded secret for a robot from the OpenShift cluster. The robot_name is used as both the namespace and secret name.")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Operation(summary = "Returns the complete YAML of the secret for a robot from the OpenShift cluster, including labels and annotations.")
+    @Produces("application/x-yaml")
     public Response getToken(
-            @Parameter(description = "Robot name (used as namespace and secret name)", required = true) 
+            @Parameter(description = "Robot name (used as secret name in the robot namespace)", required = true) 
             @RestQuery("robot_name") String robotName) {
         
         if (robotName == null || robotName.isBlank()) {
@@ -218,7 +216,7 @@ public class RobotControlEndpoint {
         System.out.println("Fetching secret '" + robotName + "' in namespace '" + ROBOT_NAMESPACE + "'");
 
         try {
-            // Fetch the secret from OpenShift (robot_name is both namespace and secret name)
+            // Fetch the secret from OpenShift
             Secret secret = openShiftClient.secrets()
                     .inNamespace(ROBOT_NAMESPACE)
                     .withName(robotName)
@@ -231,28 +229,11 @@ public class RobotControlEndpoint {
                         .build();
             }
 
-            // Get the secret data and encode the entire content as base64
-            Map<String, String> secretData = secret.getData();
-            
-            if (secretData == null || secretData.isEmpty()) {
-                System.err.println("Secret data is empty for robot: " + robotName);
-                return Response.status(Response.Status.NOT_FOUND)
-                        .entity("Secret data is empty for robot: " + robotName)
-                        .build();
-            }
+            // Convert the secret to YAML format (includes all metadata, labels, annotations, and data)
+            String secretYaml = Serialization.asYaml(secret);
 
-            // Convert secret data to a string representation and encode as base64
-            // The secret data values are already base64 encoded by Kubernetes
-            // We'll return the entire secret data as a JSON-like string, base64 encoded
-            String secretContent = secretData.entrySet().stream()
-                    .map(entry -> entry.getKey() + "=" + entry.getValue())
-                    .collect(Collectors.joining("\n"));
-            
-            String base64Encoded = Base64.getEncoder()
-                    .encodeToString(secretContent.getBytes(StandardCharsets.UTF_8));
-
-            System.out.println("Successfully retrieved secret for robot: " + robotName);
-            return Response.ok(base64Encoded).build();
+            System.out.println("Successfully retrieved secret YAML for robot: " + robotName);
+            return Response.ok(secretYaml).build();
 
         } catch (Exception e) {
             System.err.println("Error fetching secret for robot '" + robotName + "': " + e.getMessage());
