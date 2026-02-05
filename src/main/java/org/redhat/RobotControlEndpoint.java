@@ -2,16 +2,18 @@ package org.redhat;
 
 import java.util.UUID;
 
-import io.fabric8.kubernetes.client.utils.Serialization;
-
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import io.fabric8.openshift.client.OpenShiftClient;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -40,11 +42,61 @@ public class RobotControlEndpoint {
     // Skupper site ConfigMap name
     private static final String SKUPPER_SITE_CONFIGMAP = "skupper-site";
 
+    // Skupper site controller namespace and label
+    private static final String OPENSHIFT_OPERATORS_NAMESPACE = "openshift-operators";
+    private static final String SKUPPER_SITE_CONTROLLER_LABEL = "app.kubernetes.io/name=skupper-site-controller";
+
     @Inject
     RobotStatusController robotStatusController;
 
     @Inject
     OpenShiftClient openShiftClient;
+
+    /**
+     * Restart the skupper-site-controller pod on application startup.
+     * This ensures the controller picks up any configuration changes.
+     */
+    void onStart(@Observes StartupEvent ev) {
+        restartSkupperSiteController();
+    }
+
+    /**
+     * Restarts the skupper-site-controller by deleting the pod.
+     * The deployment will automatically recreate it.
+     */
+    private void restartSkupperSiteController() {
+        try {
+            System.out.println("Restarting skupper-site-controller in namespace '" + OPENSHIFT_OPERATORS_NAMESPACE + "'...");
+
+            // Find and delete pods with the skupper-site-controller label
+            var pods = openShiftClient.pods()
+                    .inNamespace(OPENSHIFT_OPERATORS_NAMESPACE)
+                    .withLabel("app.kubernetes.io/name", "skupper-site-controller")
+                    .list()
+                    .getItems();
+
+            if (pods == null || pods.isEmpty()) {
+                System.out.println("No skupper-site-controller pods found to restart");
+                return;
+            }
+
+            for (Pod pod : pods) {
+                String podName = pod.getMetadata().getName();
+                System.out.println("Deleting skupper-site-controller pod: " + podName);
+                
+                openShiftClient.pods()
+                        .inNamespace(OPENSHIFT_OPERATORS_NAMESPACE)
+                        .withName(podName)
+                        .delete();
+                
+                System.out.println("Successfully deleted pod: " + podName + " (will be recreated by deployment)");
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error restarting skupper-site-controller: " + e.getMessage());
+            // Don't fail startup if we can't restart the controller
+        }
+    }
 
     @GET
     @Path("/eventId")
@@ -138,7 +190,7 @@ public class RobotControlEndpoint {
                     .addToData("console-user", "")
                     .addToData("enable-skupper-events", "true")
                     .addToData("flow-collector", "true")
-                    .addToData("ingress", "loadbalancer")
+                    .addToData("ingress", "route")
                     .addToData("name", "data-center")
                     .addToData("router-console", "false")
                     .addToData("router-logging", "")
