@@ -11,6 +11,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.fabric8.openshift.client.OpenShiftClient;
+import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -42,9 +43,8 @@ public class RobotControlEndpoint {
     // Skupper site ConfigMap name
     private static final String SKUPPER_SITE_CONFIGMAP = "skupper-site";
 
-    // Skupper site controller namespace and label
+    // Skupper site controller namespace
     private static final String OPENSHIFT_OPERATORS_NAMESPACE = "openshift-operators";
-    private static final String SKUPPER_SITE_CONTROLLER_LABEL = "app.kubernetes.io/name=skupper-site-controller";
 
     @Inject
     RobotStatusController robotStatusController;
@@ -55,8 +55,14 @@ public class RobotControlEndpoint {
     /**
      * Restart the skupper-site-controller pod on application startup.
      * This ensures the controller picks up any configuration changes.
+     * Skipped in test and dev modes.
      */
     void onStart(@Observes StartupEvent ev) {
+        // Skip skupper restart in test and dev modes
+        if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
+            System.out.println("Skipping skupper-site-controller restart in " + LaunchMode.current() + " mode");
+            return;
+        }
         restartSkupperSiteController();
     }
 
@@ -114,14 +120,17 @@ public class RobotControlEndpoint {
                 System.out.println("Robot '" + robotName + "' already registered, returning eventId: " + eventId);
             }
 
-            // Ensure namespace exists
-            // ensureNamespaceExists();
+            // Skip OpenShift operations in test and dev modes
+            if (LaunchMode.current() != LaunchMode.TEST && LaunchMode.current() != LaunchMode.DEVELOPMENT) {
+                // Ensure namespace exists
+                // ensureNamespaceExists();
 
-            // Ensure Skupper site ConfigMap exists
-            ensureSkupperSiteConfigMapExists();
+                // Ensure Skupper site ConfigMap exists
+                ensureSkupperSiteConfigMapExists();
 
-            // Check if secret exists in the robot namespace, create if not
-            ensureRobotSecretExists(robotName);
+                // Check if secret exists in the robot namespace, create if not
+                ensureRobotSecretExists(robotName);
+            }
         }
         
         return eventId;
