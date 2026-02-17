@@ -88,6 +88,36 @@ public class RobotStatusController {
 
     }
 
+    // set initialization status of robot
+    // @returns true if status was set, false if robot not found
+    public boolean setRobotInitStatus(String name, String initStatus) {
+        Robot robotMatch = findRobotByName(name);
+
+        if (robotMatch == null) {
+            System.err.println("Robot not found: " + name);
+            return false;
+        }
+        
+        robotMatch.setInitStatus(initStatus);
+        System.out.println("Updated init status for robot '" + name + "' to: " + initStatus);
+        return true;
+    }
+
+    // set skupper state of robot
+    // @returns true if state was set, false if robot not found
+    public boolean setRobotSkupperState(String name, String skupperState) {
+        Robot robotMatch = findRobotByName(name);
+
+        if (robotMatch == null) {
+            System.err.println("Robot not found: " + name);
+            return false;
+        }
+        
+        robotMatch.setSkupperState(skupperState);
+        System.out.println("Updated skupper state for robot '" + name + "' to: " + skupperState);
+        return true;
+    }
+
     // find robot by long name
     private Robot findRobotByName(String name) {
         Robot robotMatch = robotList.stream()

@@ -16,7 +16,10 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -136,6 +139,42 @@ public class RobotControlEndpoint {
         return eventId;
     }
 
+    @POST
+    @Path("/initStatus")
+    @Operation(summary = "Updates the initialization status for a robot. The status is displayed on the robot's dashboard tile.")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response setInitStatus(
+            @Parameter(description = "Robot name to update", required = true)
+            @FormParam("robot_name") String robotName,
+            @Parameter(description = "Current initialization status", required = true)
+            @FormParam("status") String status) {
+
+        if (robotName == null || robotName.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("robot_name form parameter is required")
+                    .build();
+        }
+
+        if (status == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("status form parameter is required")
+                    .build();
+        }
+
+        System.out.println("Setting init status for robot '" + robotName + "' to: " + status);
+
+        boolean updated = robotStatusController.setRobotInitStatus(robotName, status);
+        
+        if (updated) {
+            return Response.ok("Status updated for robot: " + robotName).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Robot not found: " + robotName)
+                    .build();
+        }
+    }
+
     /**
      * Ensures the robot namespace exists.
      * Creates it if it doesn't exist.
@@ -224,6 +263,7 @@ public class RobotControlEndpoint {
     /**
      * Ensures a Skupper connection token request secret exists for the robot.
      * If the secret doesn't exist, it creates one with the skupper.io/type label.
+     * Updates skupper state: "Token Request" when created, "Secret Cert Created" when Skupper adds certs.
      */
     private void ensureRobotSecretExists(String robotName) {
         try {
@@ -235,6 +275,15 @@ public class RobotControlEndpoint {
 
             if (existingSecret != null) {
                 System.out.println("Secret '" + robotName + "' already exists in namespace '" + ROBOT_NAMESPACE + "'");
+                
+                // Check if Skupper has added certificates to the secret
+                if (existingSecret.getData() != null && !existingSecret.getData().isEmpty()) {
+                    // Secret has data - Skupper has added the certificates
+                    robotStatusController.setRobotSkupperState(robotName, "Secret Cert Created");
+                } else {
+                    // Secret exists but no data yet - still waiting for Skupper
+                    robotStatusController.setRobotSkupperState(robotName, "Token Request");
+                }
                 return;
             }
 
@@ -253,6 +302,9 @@ public class RobotControlEndpoint {
                     .create();
 
             System.out.println("Created Skupper connection token request secret '" + robotName + "' in namespace '" + ROBOT_NAMESPACE + "'");
+            
+            // Update skupper state to Token Request
+            robotStatusController.setRobotSkupperState(robotName, "Token Request");
 
         } catch (Exception e) {
             System.err.println("Error ensuring secret exists for robot '" + robotName + "': " + e.getMessage());
@@ -294,6 +346,10 @@ public class RobotControlEndpoint {
             String secretYaml = Serialization.asYaml(secret);
 
             System.out.println("Successfully retrieved secret YAML for robot: " + robotName);
+            
+            // Update skupper state to Cert retrieved
+            robotStatusController.setRobotSkupperState(robotName, "Cert retrieved");
+            
             return Response.ok(secretYaml).build();
 
         } catch (Exception e) {

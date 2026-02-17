@@ -732,6 +732,8 @@ function createRobotCard(robotName, robotId, robotMessage) {
     const statusText = 'Offline';
     const buttonText = isDisconnected ? 'Connect' : 'Disconnect';
     const cameraVisibleClass = cameraEnabled ? 'visible' : '';
+    const initStatus = robotMessage.initStatus || '';
+    const skupperState = robotMessage.skupperState || 'Skupper';
     
     // Create stopwatch for this robot
     stopwatches[robotId] = new Stopwatch(robotId);
@@ -746,7 +748,7 @@ function createRobotCard(robotName, robotId, robotMessage) {
                     <div class="status-badges">
                         <div class="skupper-status-indicator" id="${robotId}-skupper-badge">
                             <i class="bi bi-link-45deg"></i>
-                            <span id="${robotId}-skupper-text">Skupper OK</span>
+                            <span id="${robotId}-skupper-text">${skupperState}</span>
                         </div>
                         <div class="robot-status-indicator ${statusClass}" id="${robotId}-status-badge">
                             <i class="bi bi-circle-fill"></i>
@@ -760,6 +762,13 @@ function createRobotCard(robotName, robotId, robotMessage) {
             </div>
             <div class="card-body">
                 <div class="robot-name">${robotName}</div>
+                <div class="init-status-section" id="${robotId}-init-status-section" style="${initStatus ? '' : 'display: none;'}">
+                    <div class="init-status-title">Robot Status</div>
+                    <div class="init-status-label">
+                        <i class="bi bi-info-circle"></i>
+                        <span class="init-status-text" id="${robotId}-init-status">${initStatus}</span>
+                    </div>
+                </div>
                 <div class="camera-section ${cameraVisibleClass}" id="${robotId}-camera-section">
                     <div class="camera-label">
                         <span class="camera-label-text">
@@ -925,12 +934,68 @@ function initWebSocket() {
                     } else if (robotMessage.disconnected === false) {
                         $("#" + robotId + "-disconnect-text").text('Disconnect');
                     }
+                    
+                    // Update init status if present
+                    updateInitStatus(robotId, robotMessage.initStatus);
+                    
+                    // Update skupper state if present
+                    updateSkupperState(robotId, robotMessage.skupperState);
                 }
             }
         } catch (error) {
             console.error("Error processing message:", error);
         }
     };
+}
+
+// Update init status display for a robot
+function updateInitStatus(robotId, initStatus) {
+    const sectionEl = document.getElementById(`${robotId}-init-status-section`);
+    const statusEl = document.getElementById(`${robotId}-init-status`);
+    
+    if (sectionEl && statusEl) {
+        if (initStatus && initStatus.trim() !== '') {
+            statusEl.textContent = initStatus;
+            sectionEl.style.display = '';
+            // Add animation effect
+            sectionEl.classList.add('status-updated');
+            setTimeout(() => sectionEl.classList.remove('status-updated'), 500);
+        } else {
+            sectionEl.style.display = 'none';
+        }
+    }
+}
+
+// Update skupper state display for a robot
+function updateSkupperState(robotId, skupperState) {
+    const textEl = document.getElementById(`${robotId}-skupper-text`);
+    const badgeEl = document.getElementById(`${robotId}-skupper-badge`);
+    
+    if (textEl && skupperState) {
+        const oldState = textEl.textContent;
+        if (oldState !== skupperState) {
+            textEl.textContent = skupperState;
+            
+            // Update badge styling based on state
+            if (badgeEl) {
+                badgeEl.classList.remove('state-initial', 'state-token-request', 'state-cert-created', 'state-cert-retrieved');
+                
+                if (skupperState === 'Skupper') {
+                    badgeEl.classList.add('state-initial');
+                } else if (skupperState === 'Token Request') {
+                    badgeEl.classList.add('state-token-request');
+                } else if (skupperState === 'Secret Cert Created') {
+                    badgeEl.classList.add('state-cert-created');
+                } else if (skupperState === 'Cert Retrieved') {
+                    badgeEl.classList.add('state-cert-retrieved');
+                }
+                
+                // Add animation effect
+                badgeEl.classList.add('state-changed');
+                setTimeout(() => badgeEl.classList.remove('state-changed'), 500);
+            }
+        }
+    }
 }
 
 function generateClientId(length) {

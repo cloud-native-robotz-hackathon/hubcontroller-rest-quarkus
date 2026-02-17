@@ -410,6 +410,37 @@
       font-size: 0.6rem;
     }
 
+    /* Skupper state styles */
+    .skupper-status-indicator.state-initial {
+      background: rgba(100, 116, 139, 0.2);
+      color: var(--text-muted);
+    }
+
+    .skupper-status-indicator.state-token-request {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
+    .skupper-status-indicator.state-cert-created {
+      background: rgba(14, 165, 233, 0.2);
+      color: var(--accent-secondary);
+    }
+
+    .skupper-status-indicator.state-cert-retrieved {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .skupper-status-indicator.state-changed {
+      animation: skupperPulse 0.5s ease;
+    }
+
+    @keyframes skupperPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
     .card-body {
       padding: 0 1.5rem 1.5rem;
     }
@@ -421,6 +452,50 @@
       color: var(--text-primary);
       margin-bottom: 1rem;
       word-break: break-all;
+    }
+
+    /* Init Status Section */
+    .init-status-section {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .init-status-section.status-updated {
+      animation: statusPulse 0.5s ease;
+    }
+
+    @keyframes statusPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    .init-status-title {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 0.35rem;
+    }
+
+    .init-status-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #ffffff;
+    }
+
+    .init-status-label i {
+      font-size: 1rem;
+    }
+
+    .init-status-text {
+      word-break: break-word;
     }
 
     .stats-grid {

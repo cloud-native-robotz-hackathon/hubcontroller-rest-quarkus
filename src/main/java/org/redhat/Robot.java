@@ -11,6 +11,8 @@ public class Robot {
     int operationCount = 0; // number of robot operations
     boolean isDisconnected = false; // wether the rest connection forwarding to the roobot is disconnected
     boolean status = false;
+    String initStatus; // current initialization status of the robot
+    String skupperState = "Skupper"; // Skupper connection state: Skupper, Token Request, Secret Cert Created, Cert retrieved
 
     public Robot(String name) {
         this.name = name;
@@ -39,7 +41,7 @@ public class Robot {
     @Override
     public String toString() {
         return "Robot [name=" + name + ", operation=" + operation + ", count=" + operationCount + ", isDisconnected="
-                + isDisconnected + ", status=" + status + "]";
+                + isDisconnected + ", status=" + status + ", initStatus=" + initStatus + ", skupperState=" + skupperState + "]";
     }
 
     public String getName() {
@@ -63,5 +65,25 @@ public class Robot {
     // wether there has been a successful connection to the robot
     public void setStatus(boolean b) {
         status = b;
+    }
+
+    // get initialization status
+    public String getInitStatus() {
+        return initStatus;
+    }
+
+    // set initialization status
+    public void setInitStatus(String initStatus) {
+        this.initStatus = initStatus;
+    }
+
+    // get skupper state
+    public String getSkupperState() {
+        return skupperState;
+    }
+
+    // set skupper state
+    public void setSkupperState(String skupperState) {
+        this.skupperState = skupperState;
     }
 }
