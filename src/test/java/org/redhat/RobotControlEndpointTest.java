@@ -30,6 +30,7 @@ class RobotControlEndpointTest {
         void testEventIdEndpointReturnsUUID() {
                 given()
                                 .auth().basic(AUTH_USER, AUTH_PASSWORD)
+                                .queryParam("robot_name", "test_robot_uuid")
                                 .when().get("/control/eventId")
                                 .then()
                                 .statusCode(200)
@@ -39,24 +40,28 @@ class RobotControlEndpointTest {
 
         @Test
         void testEventIdEndpointReturnsSameValueOnMultipleCalls() {
+                String robotName = "test_robot_same_uuid";
+                
                 // First call
                 String firstEventId = given()
                                 .auth().basic(AUTH_USER, AUTH_PASSWORD)
+                                .queryParam("robot_name", robotName)
                                 .when().get("/control/eventId")
                                 .then()
                                 .statusCode(200)
                                 .extract().body().asString();
 
-                // Second call
+                // Second call with same robot name
                 String secondEventId = given()
                                 .auth().basic(AUTH_USER, AUTH_PASSWORD)
+                                .queryParam("robot_name", robotName)
                                 .when().get("/control/eventId")
                                 .then()
                                 .statusCode(200)
                                 .extract().body().asString();
 
-                // Should return the same UUID
-                assertEquals(firstEventId, secondEventId, "Event ID should remain constant across multiple calls");
+                // Should return the same UUID for the same robot
+                assertEquals(firstEventId, secondEventId, "Event ID should remain constant for the same robot across multiple calls");
         }
 
         @Test
@@ -85,6 +90,7 @@ class RobotControlEndpointTest {
         void testControlEndpointRequiresAuthentication() {
                 // Without auth, should get 401
                 given()
+                                .queryParam("robot_name", "test_robot_auth")
                                 .when().get("/control/eventId")
                                 .then()
                                 .statusCode(401);

@@ -35,9 +35,6 @@ import org.jboss.resteasy.reactive.RestQuery;
 @ApplicationScoped
 public class RobotControlEndpoint {
 
-    // Generated once at application startup, stays the same for the application lifetime
-    private final String eventId = UUID.randomUUID().toString();
-
     // Namespace where robot connection token request secrets are created
     private static final String ROBOT_NAMESPACE = "robot";
 
@@ -45,11 +42,20 @@ public class RobotControlEndpoint {
     private static final String SKUPPER_TYPE_LABEL = "skupper.io/type";
     private static final String CONNECTION_TOKEN_REQUEST = "connection-token-request";
 
+    // Label for storing robot-specific UUID
+    private static final String ROBOT_UUID_LABEL = "robot.hackathon/uuid";
+
+    // Certificate key that Skupper writes to the secret
+    private static final String SKUPPER_CA_CRT_KEY = "ca.crt";
+
     // Skupper site ConfigMap name
     private static final String SKUPPER_SITE_CONFIGMAP = "skupper-site";
 
     // Skupper site controller namespace
     private static final String OPENSHIFT_OPERATORS_NAMESPACE = "openshift-operators";
+
+    // In-memory cache for robot UUIDs (used in test/dev mode when OpenShift is not available)
+    private final java.util.Map<String, String> robotUuidCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Inject
     RobotStatusController robotStatusController;
@@ -118,34 +124,42 @@ public class RobotControlEndpoint {
 
     @GET
     @Path("/eventId")
-    @Operation(summary = "Returns a unique event ID and optionally registers a new robot. Creates a Skupper connection token request secret if it doesn't exist.")
+    @Operation(summary = "Returns a robot-specific UUID. Creates a Skupper connection token request secret with the UUID if it doesn't exist.")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getEventId(
+    public Response getEventId(
             @Parameter(description = "Robot name to register", required = true) 
             @RestQuery("robot_name") String robotName) {
         
-        if (robotName != null && !robotName.isBlank()) {
-            boolean registered = robotStatusController.registerRobot(robotName);
-            if (registered) {
-                System.out.println("Registered robot '" + robotName + "' with eventId: " + eventId);
-            } else {
-                System.out.println("Robot '" + robotName + "' already registered, returning eventId: " + eventId);
-            }
-
-            // Skip OpenShift operations in test and dev modes
-            if (LaunchMode.current() != LaunchMode.TEST && LaunchMode.current() != LaunchMode.DEVELOPMENT) {
-                // Ensure namespace exists
-                // ensureNamespaceExists();
-
-                // Ensure Skupper site ConfigMap exists
-                ensureSkupperSiteConfigMapExists();
-
-                // Check if secret exists in the robot namespace, create if not
-                ensureRobotSecretExists(robotName);
-            }
+        if (robotName == null || robotName.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("robot_name query parameter is required")
+                    .build();
         }
+
+        // Register robot in the status controller
+        robotStatusController.registerRobot(robotName);
+
+        // In test and dev modes, use cached UUIDs without OpenShift operations
+        if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
+            String testUuid = robotUuidCache.computeIfAbsent(robotName, k -> UUID.randomUUID().toString());
+            System.out.println("Test/Dev mode: Using UUID '" + testUuid + "' for robot '" + robotName + "'");
+            return Response.ok(testUuid).build();
+        }
+
+        // Ensure Skupper site ConfigMap exists
+        ensureSkupperSiteConfigMapExists();
+
+        // Get or create the robot secret and return its UUID
+        String robotUuid = getOrCreateRobotSecret(robotName);
         
-        return eventId;
+        if (robotUuid != null) {
+            System.out.println("Returning UUID '" + robotUuid + "' for robot '" + robotName + "'");
+            return Response.ok(robotUuid).build();
+        } else {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Failed to get or create secret for robot: " + robotName)
+                    .build();
+        }
     }
 
     @GET
@@ -279,11 +293,12 @@ public class RobotControlEndpoint {
     }
 
     /**
-     * Ensures a Skupper connection token request secret exists for the robot.
-     * If the secret doesn't exist, it creates one with the skupper.io/type label.
+     * Gets the robot UUID from an existing secret or creates a new secret with a new UUID.
+     * The UUID is stored in the robot.hackathon/uuid label.
      * Updates skupper state: "Token Request" when created, "Secret Cert Created" when Skupper adds certs.
+     * @return the robot UUID, or null if an error occurred
      */
-    private void ensureRobotSecretExists(String robotName) {
+    private String getOrCreateRobotSecret(String robotName) {
         try {
             // Check if secret already exists
             Secret existingSecret = openShiftClient.secrets()
@@ -294,23 +309,39 @@ public class RobotControlEndpoint {
             if (existingSecret != null) {
                 System.out.println("Secret '" + robotName + "' already exists in namespace '" + ROBOT_NAMESPACE + "'");
                 
+                // Get the robot UUID from the label
+                String robotUuid = existingSecret.getMetadata().getLabels() != null 
+                        ? existingSecret.getMetadata().getLabels().get(ROBOT_UUID_LABEL)
+                        : null;
+                
+                if (robotUuid == null || robotUuid.isBlank()) {
+                    // Secret exists but has no UUID label - this shouldn't happen, but generate one
+                    robotUuid = UUID.randomUUID().toString();
+                    System.out.println("Warning: Secret had no UUID label, generated new UUID: " + robotUuid);
+                }
+                
                 // Check if Skupper has added certificates to the secret
-                if (existingSecret.getData() != null && !existingSecret.getData().isEmpty()) {
-                    // Secret has data - Skupper has added the certificates
+                if (existingSecret.getData() != null && existingSecret.getData().containsKey(SKUPPER_CA_CRT_KEY)) {
+                    // Secret has ca.crt - Skupper has added the certificates
                     robotStatusController.setRobotSkupperState(robotName, "Secret Cert Created");
                 } else {
-                    // Secret exists but no data yet - still waiting for Skupper
+                    // Secret exists but no cert yet - still waiting for Skupper
                     robotStatusController.setRobotSkupperState(robotName, "Token Request");
                 }
-                return;
+                
+                return robotUuid;
             }
 
-            // Create new secret with Skupper connection token request label
+            // Generate a new UUID for this robot
+            String robotUuid = UUID.randomUUID().toString();
+
+            // Create new secret with Skupper connection token request label and robot UUID label
             Secret newSecret = new SecretBuilder()
                     .withNewMetadata()
                         .withName(robotName)
                         .withNamespace(ROBOT_NAMESPACE)
                         .addToLabels(SKUPPER_TYPE_LABEL, CONNECTION_TOKEN_REQUEST)
+                        .addToLabels(ROBOT_UUID_LABEL, robotUuid)
                     .endMetadata()
                     .build();
 
@@ -319,20 +350,23 @@ public class RobotControlEndpoint {
                     .resource(newSecret)
                     .create();
 
-            System.out.println("Created Skupper connection token request secret '" + robotName + "' in namespace '" + ROBOT_NAMESPACE + "'");
+            System.out.println("Created Skupper connection token request secret '" + robotName + "' with UUID '" + robotUuid + "' in namespace '" + ROBOT_NAMESPACE + "'");
             
             // Update skupper state to Token Request
             robotStatusController.setRobotSkupperState(robotName, "Token Request");
+            
+            return robotUuid;
 
         } catch (Exception e) {
-            System.err.println("Error ensuring secret exists for robot '" + robotName + "': " + e.getMessage());
+            System.err.println("Error getting/creating secret for robot '" + robotName + "': " + e.getMessage());
             e.printStackTrace();
+            return null;
         }
     }
 
     @GET
     @Path("/getToken")
-    @Operation(summary = "Returns the complete YAML of the secret for a robot from the OpenShift cluster, including labels and annotations.")
+    @Operation(summary = "Returns the complete YAML of the secret for a robot. Only returns the secret if Skupper has written the certificate to it.")
     @Produces("application/x-yaml")
     public Response getToken(
             @Parameter(description = "Robot name (used as secret name in the robot namespace)", required = true) 
@@ -357,6 +391,14 @@ public class RobotControlEndpoint {
                 System.err.println("Secret not found for robot: " + robotName);
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity("Secret not found for robot: " + robotName)
+                        .build();
+            }
+
+            // Check if Skupper has written the certificate to the secret
+            if (secret.getData() == null || !secret.getData().containsKey(SKUPPER_CA_CRT_KEY)) {
+                System.out.println("Certificate not yet available for robot: " + robotName + " - Skupper has not written to the secret");
+                return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                        .entity("Certificate not yet available. Skupper has not written to the secret.")
                         .build();
             }
 
