@@ -765,7 +765,6 @@ function createRobotCard(robotName, robotId, robotMessage) {
                 <div class="init-status-section" id="${robotId}-init-status-section" style="${initStatus ? '' : 'display: none;'}">
                     <div class="init-status-title">Robot Status</div>
                     <div class="init-status-label">
-                        <i class="bi bi-info-circle"></i>
                         <span class="init-status-text" id="${robotId}-init-status">${initStatus}</span>
                     </div>
                 </div>
