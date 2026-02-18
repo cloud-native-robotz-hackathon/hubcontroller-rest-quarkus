@@ -86,17 +86,17 @@ public class RobotControlEndpoint {
     }
 
     /**
-     * Scans the robot namespace for existing secrets with the skupper token request label
-     * and registers them as robots in the status controller.
+     * Scans the robot namespace for existing robot secrets and registers them.
+     * Looks for secrets with the robot.hackathon/uuid label (our robot secrets).
      */
     private void registerExistingRobots() {
         try {
             System.out.println("Scanning for existing robot secrets in namespace '" + ROBOT_NAMESPACE + "'...");
 
-            // Find all secrets with the skupper connection token request label
+            // Find all secrets with the robot UUID label (this identifies our robot secrets)
             var secrets = openShiftClient.secrets()
                     .inNamespace(ROBOT_NAMESPACE)
-                    .withLabel(SKUPPER_TYPE_LABEL, CONNECTION_TOKEN_REQUEST)
+                    .withLabel(ROBOT_UUID_LABEL)
                     .list()
                     .getItems();
 
