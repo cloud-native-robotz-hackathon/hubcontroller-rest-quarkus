@@ -1154,5 +1154,31 @@ function updateAppButton(robotId, isRunning) {
     }
 }
 
+// Fetch and display app info
+function fetchAppInfo() {
+    $.ajax({
+        url: '/control/appInfo',
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            const versionEl = document.getElementById('app-version');
+            const buildTimeEl = document.getElementById('app-build-time');
+            
+            if (versionEl && data.version) {
+                versionEl.textContent = 'v' + data.version;
+            }
+            if (buildTimeEl && data.buildTime) {
+                buildTimeEl.textContent = 'Build: ' + data.buildTime;
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("Failed to fetch app info:", error);
+        }
+    });
+}
+
 // Start the WebSocket connection when the page loads
 initWebSocket();
+
+// Fetch app info on page load
+fetchAppInfo();

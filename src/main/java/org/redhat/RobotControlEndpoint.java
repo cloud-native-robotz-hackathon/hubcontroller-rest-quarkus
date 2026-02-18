@@ -2,6 +2,8 @@ package org.redhat;
 
 import java.util.UUID;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.Namespace;
@@ -54,6 +56,13 @@ public class RobotControlEndpoint {
 
     @Inject
     OpenShiftClient openShiftClient;
+
+    @ConfigProperty(name = "quarkus.application.version", defaultValue = "1.0.0-SNAPSHOT")
+    String appVersion;
+
+    // Build time captured at class load time
+    private static final String BUILD_TIME = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
     /**
      * Restart the skupper-site-controller pod on application startup.
@@ -137,6 +146,15 @@ public class RobotControlEndpoint {
         }
         
         return eventId;
+    }
+
+    @GET
+    @Path("/appInfo")
+    @Operation(summary = "Returns application version and build/start timestamp")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAppInfo() {
+        String json = String.format("{\"version\":\"%s\",\"buildTime\":\"%s\"}", appVersion, BUILD_TIME);
+        return Response.ok(json).build();
     }
 
     @POST
