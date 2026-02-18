@@ -459,16 +459,34 @@ function pollRemoteStatus(robotName, robotId) {
 function updateRobotStatus(robotId, isOnline) {
     const badge = document.getElementById(`${robotId}-status-badge`);
     const statusText = document.getElementById(`${robotId}-status-text`);
+    const statusIcon = document.getElementById(`${robotId}-status-icon`);
     
     if (badge && statusText) {
+        // Once online, we switch from skupper state to online/offline mode
         if (isOnline) {
-            badge.classList.remove('offline');
-            badge.classList.add('online');
-            statusText.textContent = 'Online';
-        } else {
-            badge.classList.remove('online');
-            badge.classList.add('offline');
-            statusText.textContent = 'Offline';
+            badge.setAttribute('data-seen-online', 'true');
+        }
+        
+        const seenOnline = badge.getAttribute('data-seen-online') === 'true';
+        
+        if (seenOnline) {
+            // Switch to online/offline mode
+            badge.classList.remove('skupper-state', 'state-initial', 'state-token-request', 'state-cert-created', 'state-cert-retrieved');
+            
+            if (isOnline) {
+                badge.classList.remove('offline');
+                badge.classList.add('online');
+                statusText.textContent = 'Online';
+            } else {
+                badge.classList.remove('online');
+                badge.classList.add('offline');
+                statusText.textContent = 'Offline';
+            }
+            
+            // Update icon to circle
+            if (statusIcon) {
+                statusIcon.className = 'bi bi-circle-fill';
+            }
         }
     }
     
@@ -476,16 +494,31 @@ function updateRobotStatus(robotId, isOnline) {
     if (currentFullscreenRobot === robotId) {
         const fsBadge = document.getElementById(`fs-${robotId}-status-badge`);
         const fsStatusText = document.getElementById(`fs-${robotId}-status-text`);
+        const fsStatusIcon = document.getElementById(`fs-${robotId}-status-icon`);
         
         if (fsBadge && fsStatusText) {
+            const seenOnline = fsBadge.getAttribute('data-seen-online') === 'true';
+            
             if (isOnline) {
-                fsBadge.classList.remove('offline');
-                fsBadge.classList.add('online');
-                fsStatusText.textContent = 'Online';
-            } else {
-                fsBadge.classList.remove('online');
-                fsBadge.classList.add('offline');
-                fsStatusText.textContent = 'Offline';
+                fsBadge.setAttribute('data-seen-online', 'true');
+            }
+            
+            if (seenOnline || isOnline) {
+                fsBadge.classList.remove('skupper-state', 'state-initial', 'state-token-request', 'state-cert-created', 'state-cert-retrieved');
+                
+                if (isOnline) {
+                    fsBadge.classList.remove('offline');
+                    fsBadge.classList.add('online');
+                    fsStatusText.textContent = 'Online';
+                } else {
+                    fsBadge.classList.remove('online');
+                    fsBadge.classList.add('offline');
+                    fsStatusText.textContent = 'Offline';
+                }
+                
+                if (fsStatusIcon) {
+                    fsStatusIcon.className = 'bi bi-circle-fill';
+                }
             }
         }
     }
@@ -754,13 +787,9 @@ function createRobotCard(robotName, robotId, robotMessage) {
                 </div>
                 <div class="card-header-actions">
                     <div class="status-badges">
-                        <div class="skupper-status-indicator" id="${robotId}-skupper-badge">
-                            <i class="bi bi-link-45deg"></i>
-                            <span id="${robotId}-skupper-text">${skupperState}</span>
-                        </div>
-                        <div class="robot-status-indicator ${statusClass}" id="${robotId}-status-badge">
-                            <i class="bi bi-circle-fill"></i>
-                            <span id="${robotId}-status-text">${statusText}</span>
+                        <div class="robot-status-indicator skupper-state state-initial" id="${robotId}-status-badge" data-skupper-state="${skupperState}" data-seen-online="false">
+                            <i class="bi bi-link-45deg" id="${robotId}-status-icon"></i>
+                            <span id="${robotId}-status-text">${skupperState}</span>
                         </div>
                     </div>
                     <button class="fullscreen-btn" id="${robotId}-fullscreen-btn" onclick="toggleFullscreen('${robotId}', '${robotName}')" title="Toggle fullscreen">
@@ -975,32 +1004,39 @@ function updateInitStatus(robotId, initStatus) {
 
 // Update skupper state display for a robot
 function updateSkupperState(robotId, skupperState) {
-    const textEl = document.getElementById(`${robotId}-skupper-text`);
-    const badgeEl = document.getElementById(`${robotId}-skupper-badge`);
+    const badgeEl = document.getElementById(`${robotId}-status-badge`);
+    const textEl = document.getElementById(`${robotId}-status-text`);
     
-    if (textEl && skupperState) {
-        const oldState = textEl.textContent;
+    if (badgeEl && textEl && skupperState) {
+        // Only update skupper state if we haven't seen the robot online yet
+        const seenOnline = badgeEl.getAttribute('data-seen-online') === 'true';
+        if (seenOnline) {
+            // Store the skupper state but don't display it
+            badgeEl.setAttribute('data-skupper-state', skupperState);
+            return;
+        }
+        
+        const oldState = badgeEl.getAttribute('data-skupper-state');
         if (oldState !== skupperState) {
+            badgeEl.setAttribute('data-skupper-state', skupperState);
             textEl.textContent = skupperState;
             
             // Update badge styling based on state
-            if (badgeEl) {
-                badgeEl.classList.remove('state-initial', 'state-token-request', 'state-cert-created', 'state-cert-retrieved');
-                
-                if (skupperState === 'Skupper') {
-                    badgeEl.classList.add('state-initial');
-                } else if (skupperState === 'Token Request') {
-                    badgeEl.classList.add('state-token-request');
-                } else if (skupperState === 'Secret Cert Created') {
-                    badgeEl.classList.add('state-cert-created');
-                } else if (skupperState === 'Cert Retrieved') {
-                    badgeEl.classList.add('state-cert-retrieved');
-                }
-                
-                // Add animation effect
-                badgeEl.classList.add('state-changed');
-                setTimeout(() => badgeEl.classList.remove('state-changed'), 500);
+            badgeEl.classList.remove('state-initial', 'state-token-request', 'state-cert-created', 'state-cert-retrieved');
+            
+            if (skupperState === 'Skupper') {
+                badgeEl.classList.add('state-initial');
+            } else if (skupperState === 'Token Request') {
+                badgeEl.classList.add('state-token-request');
+            } else if (skupperState === 'Secret Cert Created') {
+                badgeEl.classList.add('state-cert-created');
+            } else if (skupperState === 'Cert Retrieved') {
+                badgeEl.classList.add('state-cert-retrieved');
             }
+            
+            // Add animation effect
+            badgeEl.classList.add('state-changed');
+            setTimeout(() => badgeEl.classList.remove('state-changed'), 500);
         }
     }
 }
@@ -1026,6 +1062,12 @@ function disconnect(robotId) {
             console.log("Disconnect response:", response);
             
             const badge = $("#" + robotId + "-status-badge");
+            const icon = $("#" + robotId + "-status-icon");
+            
+            // Remove skupper state classes since we're now in online/offline mode
+            badge.removeClass('skupper-state state-initial state-token-request state-cert-created state-cert-retrieved');
+            badge.attr('data-seen-online', 'true');
+            icon.attr('class', 'bi bi-circle-fill');
             
             if (response === "true") {
                 // Robot is now disconnected

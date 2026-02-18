@@ -391,47 +391,37 @@
       font-size: 0.5rem;
     }
 
-    /* Skupper Status Indicator */
-    .skupper-status-indicator {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    /* Skupper state styles (when badge shows skupper status) */
+    .robot-status-indicator.skupper-state {
       background: rgba(14, 165, 233, 0.15);
       color: var(--accent-secondary);
     }
 
-    .skupper-status-indicator i {
+    .robot-status-indicator.skupper-state i {
       font-size: 0.6rem;
     }
 
-    /* Skupper state styles */
-    .skupper-status-indicator.state-initial {
+    .robot-status-indicator.state-initial {
       background: rgba(100, 116, 139, 0.2);
       color: var(--text-muted);
     }
 
-    .skupper-status-indicator.state-token-request {
+    .robot-status-indicator.state-token-request {
       background: rgba(251, 191, 36, 0.2);
       color: #fbbf24;
     }
 
-    .skupper-status-indicator.state-cert-created {
+    .robot-status-indicator.state-cert-created {
       background: rgba(14, 165, 233, 0.2);
       color: var(--accent-secondary);
     }
 
-    .skupper-status-indicator.state-cert-retrieved {
+    .robot-status-indicator.state-cert-retrieved {
       background: rgba(34, 197, 94, 0.2);
       color: #22c55e;
     }
 
-    .skupper-status-indicator.state-changed {
+    .robot-status-indicator.state-changed {
       animation: skupperPulse 0.5s ease;
     }
 
