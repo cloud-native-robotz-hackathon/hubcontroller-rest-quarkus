@@ -178,19 +178,21 @@ public class RobotControlEndpoint {
             @Parameter(description = "Robot name to register", required = true) 
             @RestQuery("robot_name") String robotName) {
         
-        if (robotName == null || robotName.isBlank()) {
+        // Sanitize robot name for Kubernetes resource naming
+        String sanitizedName = InputSanitizer.sanitizeRobotName(robotName);
+        if (sanitizedName == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("robot_name query parameter is required")
+                    .entity("robot_name query parameter is required and must contain valid characters")
                     .build();
         }
 
         // Register robot in the status controller
-        robotStatusController.registerRobot(robotName);
+        robotStatusController.registerRobot(sanitizedName);
 
         // In test and dev modes, use cached UUIDs without OpenShift operations
         if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
-            String testUuid = robotUuidCache.computeIfAbsent(robotName, k -> UUID.randomUUID().toString());
-            System.out.println("Test/Dev mode: Using UUID '" + testUuid + "' for robot '" + robotName + "'");
+            String testUuid = robotUuidCache.computeIfAbsent(sanitizedName, k -> UUID.randomUUID().toString());
+            System.out.println("Test/Dev mode: Using UUID '" + testUuid + "' for robot '" + sanitizedName + "'");
             return Response.ok(testUuid).build();
         }
 
@@ -198,14 +200,14 @@ public class RobotControlEndpoint {
         ensureSkupperSiteConfigMapExists();
 
         // Get or create the robot secret and return its UUID
-        String robotUuid = getOrCreateRobotSecret(robotName);
+        String robotUuid = getOrCreateRobotSecret(sanitizedName);
         
         if (robotUuid != null) {
-            System.out.println("Returning UUID '" + robotUuid + "' for robot '" + robotName + "'");
+            System.out.println("Returning UUID '" + robotUuid + "' for robot '" + sanitizedName + "'");
             return Response.ok(robotUuid).build();
         } else {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Failed to get or create secret for robot: " + robotName)
+                    .entity("Failed to get or create secret for robot: " + sanitizedName)
                     .build();
         }
     }
@@ -228,29 +230,36 @@ public class RobotControlEndpoint {
             @Parameter(description = "Robot name to update", required = true)
             @FormParam("robot_name") String robotName,
             @Parameter(description = "Current initialization status", required = true)
-            @FormParam("status") String status) {
+            @FormParam("status") String status,
+            @Parameter(description = "Detailed error message shown on hover (optional)")
+            @FormParam("status_verbose") String statusVerbose) {
 
-        if (robotName == null || robotName.isBlank()) {
+        // Sanitize all inputs
+        String sanitizedName = InputSanitizer.sanitizeRobotName(robotName);
+        if (sanitizedName == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("robot_name form parameter is required")
+                    .entity("robot_name form parameter is required and must contain valid characters")
                     .build();
         }
 
-        if (status == null) {
+        String sanitizedStatus = InputSanitizer.sanitizeStatus(status);
+        if (sanitizedStatus == null || sanitizedStatus.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("status form parameter is required")
                     .build();
         }
 
-        System.out.println("Setting init status for robot '" + robotName + "' to: " + status);
+        String sanitizedVerbose = InputSanitizer.sanitizeVerbose(statusVerbose);
 
-        boolean updated = robotStatusController.setRobotInitStatus(robotName, status);
+        System.out.println("Setting init status for robot '" + sanitizedName + "' to: " + sanitizedStatus);
+
+        boolean updated = robotStatusController.setRobotInitStatus(sanitizedName, sanitizedStatus, sanitizedVerbose);
         
         if (updated) {
-            return Response.ok("Status updated for robot: " + robotName).build();
+            return Response.ok("Status updated for robot: " + sanitizedName).build();
         } else {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Robot not found: " + robotName)
+                    .entity("Robot not found: " + sanitizedName)
                     .build();
         }
     }
@@ -420,31 +429,33 @@ public class RobotControlEndpoint {
             @Parameter(description = "Robot name (used as secret name in the robot namespace)", required = true) 
             @RestQuery("robot_name") String robotName) {
         
-        if (robotName == null || robotName.isBlank()) {
+        // Sanitize robot name
+        String sanitizedName = InputSanitizer.sanitizeRobotName(robotName);
+        if (sanitizedName == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("robot_name query parameter is required")
+                    .entity("robot_name query parameter is required and must contain valid characters")
                     .build();
         }
 
-        System.out.println("Fetching secret '" + robotName + "' in namespace '" + ROBOT_NAMESPACE + "'");
+        System.out.println("Fetching secret '" + sanitizedName + "' in namespace '" + ROBOT_NAMESPACE + "'");
 
         try {
             // Fetch the secret from OpenShift
             Secret secret = openShiftClient.secrets()
                     .inNamespace(ROBOT_NAMESPACE)
-                    .withName(robotName)
+                    .withName(sanitizedName)
                     .get();
 
             if (secret == null) {
-                System.err.println("Secret not found for robot: " + robotName);
+                System.err.println("Secret not found for robot: " + sanitizedName);
                 return Response.status(Response.Status.NOT_FOUND)
-                        .entity("Secret not found for robot: " + robotName)
+                        .entity("Secret not found for robot: " + sanitizedName)
                         .build();
             }
 
             // Check if Skupper has written the certificate to the secret
             if (secret.getData() == null || !secret.getData().containsKey(SKUPPER_CA_CRT_KEY)) {
-                System.out.println("Certificate not yet available for robot: " + robotName + " - Skupper has not written to the secret");
+                System.out.println("Certificate not yet available for robot: " + sanitizedName + " - Skupper has not written to the secret");
                 return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                         .entity("Certificate not yet available. Skupper has not written to the secret.")
                         .build();
@@ -453,15 +464,15 @@ public class RobotControlEndpoint {
             // Convert the secret to YAML format (includes all metadata, labels, annotations, and data)
             String secretYaml = Serialization.asYaml(secret);
 
-            System.out.println("Successfully retrieved secret YAML for robot: " + robotName);
+            System.out.println("Successfully retrieved secret YAML for robot: " + sanitizedName);
             
             // Update skupper state to Cert retrieved
-            robotStatusController.setRobotSkupperState(robotName, "Cert retrieved");
+            robotStatusController.setRobotSkupperState(sanitizedName, "Cert retrieved");
             
             return Response.ok(secretYaml).build();
 
         } catch (Exception e) {
-            System.err.println("Error fetching secret for robot '" + robotName + "': " + e.getMessage());
+            System.err.println("Error fetching secret for robot '" + sanitizedName + "': " + e.getMessage());
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("Error fetching secret: " + e.getMessage())

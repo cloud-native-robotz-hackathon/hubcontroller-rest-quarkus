@@ -12,6 +12,7 @@ public class Robot {
     boolean isDisconnected = false; // wether the rest connection forwarding to the roobot is disconnected
     boolean status = false;
     String initStatus; // current initialization status of the robot
+    String initStatusVerbose; // detailed error message for initialization status (shown on hover)
     String skupperState = "Skupper"; // Skupper connection state: Skupper, Token Request, Secret Cert Created, Cert retrieved
 
     public Robot(String name) {
@@ -41,7 +42,7 @@ public class Robot {
     @Override
     public String toString() {
         return "Robot [name=" + name + ", operation=" + operation + ", count=" + operationCount + ", isDisconnected="
-                + isDisconnected + ", status=" + status + ", initStatus=" + initStatus + ", skupperState=" + skupperState + "]";
+                + isDisconnected + ", status=" + status + ", initStatus=" + initStatus + ", initStatusVerbose=" + initStatusVerbose + ", skupperState=" + skupperState + "]";
     }
 
     public String getName() {
@@ -75,6 +76,16 @@ public class Robot {
     // set initialization status
     public void setInitStatus(String initStatus) {
         this.initStatus = initStatus;
+    }
+
+    // get initialization status verbose (detailed error message)
+    public String getInitStatusVerbose() {
+        return initStatusVerbose;
+    }
+
+    // set initialization status verbose (detailed error message)
+    public void setInitStatusVerbose(String initStatusVerbose) {
+        this.initStatusVerbose = initStatusVerbose;
     }
 
     // get skupper state

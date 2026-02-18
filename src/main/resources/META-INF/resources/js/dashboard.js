@@ -13,6 +13,14 @@ const CAMERA_REFRESH_INTERVAL = 1000; // Refresh camera every 1 second
 const LOG_REFRESH_INTERVAL = 3000; // Refresh logs every 3 seconds
 const STATUS_POLL_INTERVAL = 5000; // Poll remote status every 5 seconds
 
+// HTML escape function for XSS prevention
+function escapeHtml(text) {
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 console.log("Initializing Robot Dashboard...");
 
 // Stopwatch class to manage each robot's timer
@@ -773,65 +781,69 @@ function createRobotCard(robotName, robotId, robotMessage) {
     const statusText = 'Offline';
     const buttonText = isDisconnected ? 'Connect' : 'Disconnect';
     const cameraVisibleClass = cameraEnabled ? 'visible' : '';
-    const initStatus = robotMessage.initStatus || '';
-    const skupperState = robotMessage.skupperState || 'Skupper';
+    const initStatus = escapeHtml(robotMessage.initStatus || '');
+    const skupperState = escapeHtml(robotMessage.skupperState || 'Skupper');
+    
+    // Escape robot name and ID for safe HTML insertion
+    const safeRobotName = escapeHtml(robotName);
+    const safeRobotId = escapeHtml(robotId);
     
     // Create stopwatch for this robot
     stopwatches[robotId] = new Stopwatch(robotId);
     
     return `
-        <div class="robot-card" id="card-${robotId}">
+        <div class="robot-card" id="card-${safeRobotId}">
             <div class="card-header">
                 <div class="robot-icon">
                     <i class="bi bi-robot"></i>
                 </div>
                 <div class="card-header-actions">
                     <div class="status-badges">
-                        <div class="robot-status-indicator skupper-state state-initial" id="${robotId}-status-badge" data-skupper-state="${skupperState}" data-seen-online="false">
-                            <i class="bi bi-link-45deg" id="${robotId}-status-icon"></i>
-                            <span id="${robotId}-status-text">${skupperState}</span>
+                        <div class="robot-status-indicator skupper-state state-initial" id="${safeRobotId}-status-badge" data-skupper-state="${skupperState}" data-seen-online="false">
+                            <i class="bi bi-link-45deg" id="${safeRobotId}-status-icon"></i>
+                            <span id="${safeRobotId}-status-text">${skupperState}</span>
                         </div>
                     </div>
-                    <button class="fullscreen-btn" id="${robotId}-fullscreen-btn" onclick="toggleFullscreen('${robotId}', '${robotName}')" title="Toggle fullscreen">
+                    <button class="fullscreen-btn" id="${safeRobotId}-fullscreen-btn" onclick="toggleFullscreen('${safeRobotId}', '${safeRobotName}')" title="Toggle fullscreen">
                         <i class="bi bi-arrows-fullscreen"></i>
                     </button>
                 </div>
             </div>
             <div class="card-body">
-                <div class="robot-name">${robotName}</div>
-                <div class="init-status-section" id="${robotId}-init-status-section" style="${initStatus ? '' : 'display: none;'}">
+                <div class="robot-name">${safeRobotName}</div>
+                <div class="init-status-section" id="${safeRobotId}-init-status-section" style="${initStatus ? '' : 'display: none;'}">
                     <div class="init-status-title">Robot Status</div>
                     <div class="init-status-label">
-                        <span class="init-status-text" id="${robotId}-init-status">${initStatus}</span>
+                        <span class="init-status-text" id="${safeRobotId}-init-status">${initStatus}</span>
                     </div>
                 </div>
-                <div class="camera-section ${cameraVisibleClass}" id="${robotId}-camera-section">
+                <div class="camera-section ${cameraVisibleClass}" id="${safeRobotId}-camera-section">
                     <div class="camera-label">
                         <span class="camera-label-text">
                             <i class="bi bi-camera-video"></i>
                             Camera Feed
                         </span>
-                        <span class="camera-status loading" id="${robotId}-camera-status">Loading...</span>
+                        <span class="camera-status loading" id="${safeRobotId}-camera-status">Loading...</span>
                     </div>
                     <div class="camera-view">
-                        <img id="${robotId}-camera-img" style="display: none;" alt="Camera feed">
-                        <div class="camera-placeholder" id="${robotId}-camera-placeholder">
+                        <img id="${safeRobotId}-camera-img" style="display: none;" alt="Camera feed">
+                        <div class="camera-placeholder" id="${safeRobotId}-camera-placeholder">
                             <i class="bi bi-camera-video"></i>
                             Waiting for feed...
                         </div>
                     </div>
                 </div>
-                <div class="log-section" id="${robotId}-log-section">
+                <div class="log-section" id="${safeRobotId}-log-section">
                     <div class="log-label">
                         <span class="log-label-text">
                             <i class="bi bi-terminal"></i>
                             Pod Logs
                         </span>
-                        <span class="log-status loading" id="${robotId}-log-status">Waiting...</span>
+                        <span class="log-status loading" id="${safeRobotId}-log-status">Waiting...</span>
                     </div>
                     <div class="log-view">
-                        <pre class="log-content" id="${robotId}-log-content" style="display: none;"></pre>
-                        <div class="log-placeholder" id="${robotId}-log-placeholder">
+                        <pre class="log-content" id="${safeRobotId}-log-content" style="display: none;"></pre>
+                        <div class="log-placeholder" id="${safeRobotId}-log-placeholder">
                             <i class="bi bi-terminal"></i>
                             Logs will appear in fullscreen view
                         </div>
@@ -840,11 +852,11 @@ function createRobotCard(robotName, robotId, robotMessage) {
                 <div class="stats-grid">
                     <div class="stat-item">
                         <div class="stat-label">Operations</div>
-                        <div class="stat-value" id="${robotId}-number-operations">0</div>
+                        <div class="stat-value" id="${safeRobotId}-number-operations">0</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-label">Last Action</div>
-                        <div class="stat-value operation" id="${robotId}-last-operation">—</div>
+                        <div class="stat-value operation" id="${safeRobotId}-last-operation">—</div>
                     </div>
                 </div>
                 <div class="stopwatch-section">
@@ -852,20 +864,20 @@ function createRobotCard(robotName, robotId, robotMessage) {
                         <i class="bi bi-stopwatch"></i>
                         Stopwatch
                     </div>
-                    <div class="stopwatch-display" id="${robotId}-stopwatch-display">00:00.00</div>
+                    <div class="stopwatch-display" id="${safeRobotId}-stopwatch-display">00:00.00</div>
                     <div class="stopwatch-controls">
-                        <button class="stopwatch-btn reset" id="${robotId}-stopwatch-reset" onclick="resetStopwatch('${robotId}')">
+                        <button class="stopwatch-btn reset" id="${safeRobotId}-stopwatch-reset" onclick="resetStopwatch('${safeRobotId}')">
                             <i class="bi bi-arrow-counterclockwise"></i>
                             Reset
                         </button>
                     </div>
                 </div>
                 <div class="card-actions">
-                    <button class="btn btn-secondary" onclick="disconnect('${robotId}')">
+                    <button class="btn btn-secondary" onclick="disconnect('${safeRobotId}')">
                         <i class="bi bi-plug-fill"></i>
-                        <span id="${robotId}-disconnect-text">${buttonText}</span>
+                        <span id="${safeRobotId}-disconnect-text">${buttonText}</span>
                     </button>
-                    <button class="btn btn-primary" onclick="toggleApp('${robotId}')">
+                    <button class="btn btn-primary" onclick="toggleApp('${safeRobotId}')">
                         <i class="bi bi-play-fill"></i>
                         Run App
                     </button>
@@ -972,7 +984,7 @@ function initWebSocket() {
                     }
                     
                     // Update init status if present
-                    updateInitStatus(robotId, robotMessage.initStatus);
+                    updateInitStatus(robotId, robotMessage.initStatus, robotMessage.initStatusVerbose);
                     
                     // Update skupper state if present
                     updateSkupperState(robotId, robotMessage.skupperState);
@@ -985,14 +997,25 @@ function initWebSocket() {
 }
 
 // Update init status display for a robot
-function updateInitStatus(robotId, initStatus) {
+function updateInitStatus(robotId, initStatus, initStatusVerbose) {
     const sectionEl = document.getElementById(`${robotId}-init-status-section`);
     const statusEl = document.getElementById(`${robotId}-init-status`);
     
     if (sectionEl && statusEl) {
         if (initStatus && initStatus.trim() !== '') {
+            // Use textContent for safe text insertion (prevents XSS)
             statusEl.textContent = initStatus;
             sectionEl.style.display = '';
+            
+            // Set tooltip with verbose message if provided (title attribute is safe)
+            if (initStatusVerbose && initStatusVerbose.trim() !== '') {
+                statusEl.title = initStatusVerbose;
+                statusEl.style.cursor = 'help';
+            } else {
+                statusEl.title = '';
+                statusEl.style.cursor = '';
+            }
+            
             // Add animation effect
             sectionEl.classList.add('status-updated');
             setTimeout(() => sectionEl.classList.remove('status-updated'), 500);

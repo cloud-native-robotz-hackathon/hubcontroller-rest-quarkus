@@ -56,6 +56,14 @@ public class RobotEndpoint {
         @Inject
         RobotStatusController robotStatusController;
 
+        /**
+         * Sanitizes a user key for safe use.
+         * Returns null if the key is invalid.
+         */
+        private String sanitizeUserKey(String userKey) {
+                return InputSanitizer.sanitizeRobotName(userKey);
+        }
+
         @GET
         @Path("/status")
         @Operation(summary = "Checks the status of the HubController")
@@ -63,8 +71,9 @@ public class RobotEndpoint {
         public String status(
                         @Parameter(description = "The token of the robot", required = false) @RestQuery(API_TOKEN) String userKey) {
 
-                System.out.println("Status called -> " + userKey);
-                if (userKey != null && !robotStatusController.robotExists(userKey)) {
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println("Status called -> " + sanitizedKey);
+                if (sanitizedKey != null && !robotStatusController.robotExists(sanitizedKey)) {
                         return "Robot Not Registered";
                 }
                 return RESPONSE_OK;
@@ -77,14 +86,15 @@ public class RobotEndpoint {
         public String remoteStatus(
                         @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey) {
                 
-                if (!robotStatusController.robotExists(userKey))
+                String sanitizedKey = sanitizeUserKey(userKey);
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
                 // Remote status calls don't count as operations - just check if disconnected
-                if (robotStatusController.isRobotDisconnected(userKey))
+                if (robotStatusController.isRobotDisconnected(sanitizedKey))
                         return "Robot Disconnected";
 
-                String urlString = getRobotURLFromConfigMap(userKey);
+                String urlString = getRobotURLFromConfigMap(sanitizedKey);
                 try {
                         URI url = new URI(urlString);
 
@@ -95,13 +105,13 @@ public class RobotEndpoint {
                         HttpResponse<String> response = HttpClient
                                         .newBuilder().build().send(request, BodyHandlers.ofString());
 
-                        robotStatusController.setRobotStatus(userKey, true);
+                        robotStatusController.setRobotStatus(sanitizedKey, true);
 
                         return response.body();
                 } catch (Exception e) {
                         // Log connection errors concisely - these are expected when robot is offline
-                        System.out.println(userKey + ": Connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
-                        robotStatusController.setRobotStatus(userKey, false);
+                        System.out.println(sanitizedKey + ": Connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        robotStatusController.setRobotStatus(sanitizedKey, false);
                         return "Connection Error";
                 }
         }
@@ -113,15 +123,16 @@ public class RobotEndpoint {
         public String distance(
                         @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
                         throws URISyntaxException, IOException, InterruptedException {
-                System.out.println(userKey + ": Distance Status called");
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": Distance Status called");
 
-                if (!robotStatusController.robotExists(userKey))
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
-                URI url = new URI(getRobotURLFromConfigMap(userKey));
+                URI url = new URI(getRobotURLFromConfigMap(sanitizedKey));
                 System.out.println("Calling -> " + url);
 
-                if (robotStatusController.updateRobot(userKey, "distance"))
+                if (robotStatusController.updateRobot(sanitizedKey, "distance"))
                         return "Robot Disconnected";
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -131,7 +142,7 @@ public class RobotEndpoint {
                 HttpResponse<String> response = HttpClient
                                 .newBuilder().build().send(request, BodyHandlers.ofString());
 
-                robotStatusController.setRobotStatus(userKey, true);
+                robotStatusController.setRobotStatus(sanitizedKey, true);
 
                 System.out.println("Response -> " + response.body());
                 return response.body();
@@ -146,16 +157,17 @@ public class RobotEndpoint {
                         @Parameter(description = "The length to drive the robot forward", required = true) @RestPath("length_in_cm") Integer lengthInCm)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println(userKey + ": forward called -> " + lengthInCm);
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": forward called -> " + lengthInCm);
 
-                if (!robotStatusController.robotExists(userKey))
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
-                if (robotStatusController.updateRobot(userKey, "forward"))
+                if (robotStatusController.updateRobot(sanitizedKey, "forward"))
                         return "Robot Disconnected";
 
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(getRobotURLFromConfigMap(userKey) + "/forward/" + lengthInCm))
+                                .uri(new URI(getRobotURLFromConfigMap(sanitizedKey) + "/forward/" + lengthInCm))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .build();
                 HttpResponse<String> response = HttpClient
@@ -173,15 +185,16 @@ public class RobotEndpoint {
                         @Parameter(description = "The length to drive to robot backward", required = true) @RestPath("length_in_cm") Integer lengthInCm)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println(userKey + ": backward called -> " + lengthInCm);
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": backward called -> " + lengthInCm);
 
-                if (!robotStatusController.robotExists(userKey))
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
-                if (robotStatusController.updateRobot(userKey, "backward"))
+                if (robotStatusController.updateRobot(sanitizedKey, "backward"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(getRobotURLFromConfigMap(userKey) + "/backward/" + lengthInCm))
+                                .uri(new URI(getRobotURLFromConfigMap(sanitizedKey) + "/backward/" + lengthInCm))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .build();
                 HttpResponse<String> response = HttpClient
@@ -199,15 +212,16 @@ public class RobotEndpoint {
                         @Parameter(description = "Degrees to turn the robot left", required = true) @RestPath("degrees") Integer degrees)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println(userKey + ": left called -> " + degrees);
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": left called -> " + degrees);
 
-                if (!robotStatusController.robotExists(userKey))
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
-                if (robotStatusController.updateRobot(userKey, "left"))
+                if (robotStatusController.updateRobot(sanitizedKey, "left"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(getRobotURLFromConfigMap(userKey) + "/left/" + degrees))
+                                .uri(new URI(getRobotURLFromConfigMap(sanitizedKey) + "/left/" + degrees))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .build();
                 HttpResponse<String> response = HttpClient
@@ -225,15 +239,16 @@ public class RobotEndpoint {
                         @Parameter(description = "Degrees to turn the robot right", required = true) @RestPath("degrees") Integer degrees)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println(userKey + ": right called -> " + degrees);
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": right called -> " + degrees);
 
-                if (!robotStatusController.robotExists(userKey))
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
-                if (robotStatusController.updateRobot(userKey, "right"))
+                if (robotStatusController.updateRobot(sanitizedKey, "right"))
                         return "Robot Disconnected";
                 HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(getRobotURLFromConfigMap(userKey) + "/right/" + degrees))
+                                .uri(new URI(getRobotURLFromConfigMap(sanitizedKey) + "/right/" + degrees))
                                 .POST(HttpRequest.BodyPublishers.noBody())
                                 .build();
                 HttpResponse<String> response = HttpClient
@@ -250,9 +265,11 @@ public class RobotEndpoint {
                         @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println("disconnect called for robotId-> " + robotShortId);
+                String sanitizedId = sanitizeUserKey(robotShortId);
+                System.out.println("disconnect called for robotId-> " + sanitizedId);
 
-                boolean isDisconnected = robotStatusController.disconnectRobot(robotShortId);
+                if (sanitizedId == null) return false;
+                boolean isDisconnected = robotStatusController.disconnectRobot(sanitizedId);
 
                 return isDisconnected;
         }
@@ -265,11 +282,15 @@ public class RobotEndpoint {
                         @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println("runapp called for robotId- > " + robotShortId);
+                String sanitizedId = sanitizeUserKey(robotShortId);
+                System.out.println("runapp called for robotId- > " + sanitizedId);
 
-                String robotId = robotStatusController.findRobotByShortName(robotShortId).getName();
+                if (sanitizedId == null) return "Invalid robot ID";
+                Robot robot = robotStatusController.findRobotByShortName(sanitizedId);
+                if (robot == null) return "Robot Not Found";
+                String robotId = robot.getName();
 
-                System.out.println("runapp sesolving to robotId -> " + robotId);
+                System.out.println("runapp resolving to robotId -> " + robotId);
 
                 System.out.println("Calling -> " + "http://" + robotId
                                 + ".robot.svc.cluster.local./run  with header -> Host: starterapp-python-robot-app.apps."
@@ -294,9 +315,13 @@ public class RobotEndpoint {
                         @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
                         throws URISyntaxException, IOException, InterruptedException {
 
-                System.out.println("stopapp called for robotId- > " + robotShortId);
+                String sanitizedId = sanitizeUserKey(robotShortId);
+                System.out.println("stopapp called for robotId- > " + sanitizedId);
 
-                String robotId = robotStatusController.findRobotByShortName(robotShortId).getName();
+                if (sanitizedId == null) return "Invalid robot ID";
+                Robot robot = robotStatusController.findRobotByShortName(sanitizedId);
+                if (robot == null) return "Robot Not Found";
+                String robotId = robot.getName();
 
                 System.out.println("stopapp resolving to robotId -> " + robotId);
 
@@ -322,14 +347,15 @@ public class RobotEndpoint {
         public String camera(
                         @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey) {
 
-                if (!robotStatusController.robotExists(userKey))
+                String sanitizedKey = sanitizeUserKey(userKey);
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
                 // Camera calls don't count as operations - just check if disconnected
-                if (robotStatusController.isRobotDisconnected(userKey))
+                if (robotStatusController.isRobotDisconnected(sanitizedKey))
                         return "Robot Disconnected";
 
-                String urlString = getRobotURLFromConfigMap(userKey) + "/camera";
+                String urlString = getRobotURLFromConfigMap(sanitizedKey) + "/camera";
                 try {
                         HttpRequest request = HttpRequest.newBuilder()
                                         .uri(new URI(urlString))
@@ -341,7 +367,7 @@ public class RobotEndpoint {
                         return response.body();
                 } catch (Exception e) {
                         // Log connection errors concisely - these are expected when robot is offline
-                        System.out.println(userKey + ": Camera connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        System.out.println(sanitizedKey + ": Camera connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
                         return "Connection Error";
                 }
         }

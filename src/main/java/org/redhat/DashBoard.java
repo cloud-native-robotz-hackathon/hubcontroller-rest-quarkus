@@ -34,18 +34,27 @@ public class DashBoard {
 
     @OnOpen
     public void onOpen(final Session session, @PathParam("clientId") final String clientId) {
-        sessions.put(clientId, session);
+        String sanitizedId = InputSanitizer.sanitizeClientId(clientId);
+        if (sanitizedId != null) {
+            sessions.put(sanitizedId, session);
+        }
     }
 
     @OnClose
     public void onClose(final Session session, @PathParam("clientId") final String clientId) {
-        sessions.remove(clientId);
+        String sanitizedId = InputSanitizer.sanitizeClientId(clientId);
+        if (sanitizedId != null) {
+            sessions.remove(sanitizedId);
+        }
     }
 
     @OnError
     public void onError(final Session session, @PathParam("clientId") final String clientId,
             final Throwable throwable) {
-        sessions.remove(clientId);
+        String sanitizedId = InputSanitizer.sanitizeClientId(clientId);
+        if (sanitizedId != null) {
+            sessions.remove(sanitizedId);
+        }
     }
 
     // push updates to dashboard
