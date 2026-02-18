@@ -428,21 +428,27 @@ function stopStatusPolling(robotId) {
 }
 
 function pollRemoteStatus(robotName, robotId) {
+    const url = location.protocol + '//' + location.host + '/robot/remote_status?user_key=' + encodeURIComponent(robotName);
+    console.log("[Status Poll] " + robotName + " -> " + url);
+    
     $.ajax({
         url: location.protocol + '//' + location.host + '/robot/remote_status',
         method: 'GET',
         data: { user_key: robotName },
         timeout: 5000,
         success: function(response) {
+            console.log("[Status Poll] " + robotName + " response: '" + response + "'");
             // Only set to Online if response is exactly "OK"
             if (response && response.trim() === 'OK') {
+                console.log("[Status Poll] " + robotName + " -> Online");
                 updateRobotStatus(robotId, true);
             } else {
+                console.log("[Status Poll] " + robotName + " -> Offline (response was not 'OK')");
                 updateRobotStatus(robotId, false);
             }
         },
         error: function(xhr, status, error) {
-            console.error("Status poll error for", robotName, ":", error);
+            console.error("[Status Poll] " + robotName + " error: " + status + " - " + error);
             updateRobotStatus(robotId, false);
         }
     });

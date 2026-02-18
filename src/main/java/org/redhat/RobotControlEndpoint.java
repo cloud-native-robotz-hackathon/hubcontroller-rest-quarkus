@@ -66,22 +66,70 @@ public class RobotControlEndpoint {
     @ConfigProperty(name = "quarkus.application.version", defaultValue = "1.0.0-SNAPSHOT")
     String appVersion;
 
-    // Build time captured at class load time
-    private static final String BUILD_TIME = java.time.LocalDateTime.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+    @ConfigProperty(name = "app.build.timestamp", defaultValue = "unknown")
+    String buildTimestamp;
 
     /**
-     * Restart the skupper-site-controller pod on application startup.
-     * This ensures the controller picks up any configuration changes.
+     * On application startup:
+     * 1. Restart the skupper-site-controller pod
+     * 2. Scan for existing robot secrets and register them
      * Skipped in test and dev modes.
      */
     void onStart(@Observes StartupEvent ev) {
-        // Skip skupper restart in test and dev modes
+        // Skip OpenShift operations in test and dev modes
         if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
-            System.out.println("Skipping skupper-site-controller restart in " + LaunchMode.current() + " mode");
+            System.out.println("Skipping startup OpenShift operations in " + LaunchMode.current() + " mode");
             return;
         }
         restartSkupperSiteController();
+        registerExistingRobots();
+    }
+
+    /**
+     * Scans the robot namespace for existing secrets with the skupper token request label
+     * and registers them as robots in the status controller.
+     */
+    private void registerExistingRobots() {
+        try {
+            System.out.println("Scanning for existing robot secrets in namespace '" + ROBOT_NAMESPACE + "'...");
+
+            // Find all secrets with the skupper connection token request label
+            var secrets = openShiftClient.secrets()
+                    .inNamespace(ROBOT_NAMESPACE)
+                    .withLabel(SKUPPER_TYPE_LABEL, CONNECTION_TOKEN_REQUEST)
+                    .list()
+                    .getItems();
+
+            if (secrets == null || secrets.isEmpty()) {
+                System.out.println("No existing robot secrets found");
+                return;
+            }
+
+            System.out.println("Found " + secrets.size() + " existing robot secret(s)");
+
+            for (Secret secret : secrets) {
+                String robotName = secret.getMetadata().getName();
+                
+                // Register the robot
+                boolean registered = robotStatusController.registerRobot(robotName);
+                if (registered) {
+                    System.out.println("Registered existing robot: " + robotName);
+                } else {
+                    System.out.println("Robot already registered: " + robotName);
+                }
+
+                // Update skupper state based on whether certificate exists
+                if (secret.getData() != null && secret.getData().containsKey(SKUPPER_CA_CRT_KEY)) {
+                    robotStatusController.setRobotSkupperState(robotName, "Secret Cert Created");
+                } else {
+                    robotStatusController.setRobotSkupperState(robotName, "Token Request");
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error scanning for existing robot secrets: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -167,7 +215,7 @@ public class RobotControlEndpoint {
     @Operation(summary = "Returns application version and build/start timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAppInfo() {
-        String json = String.format("{\"version\":\"%s\",\"buildTime\":\"%s\"}", appVersion, BUILD_TIME);
+        String json = String.format("{\"version\":\"%s\",\"buildTime\":\"%s\"}", appVersion, buildTimestamp);
         return Response.ok(json).build();
     }
 
