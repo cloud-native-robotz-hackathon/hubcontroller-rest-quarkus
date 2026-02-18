@@ -437,9 +437,17 @@ function pollRemoteStatus(robotName, robotId) {
         data: { user_key: robotName },
         timeout: 5000,
         success: function(response) {
-            console.log("[Status Poll] " + robotName + " response: '" + response + "' -> Online");
-            // HTTP 200 means robot is reachable and online
-            updateRobotStatus(robotId, true);
+            // Check if response indicates an error (backend returns 200 with error message)
+            const responseStr = response ? response.toString().toLowerCase() : '';
+            const isError = responseStr.includes('error') || responseStr.includes('timeout') || responseStr.includes('refused');
+            
+            if (isError) {
+                console.log("[Status Poll] " + robotName + " response: '" + response + "' -> Offline");
+                updateRobotStatus(robotId, false);
+            } else {
+                console.log("[Status Poll] " + robotName + " response: '" + response + "' -> Online");
+                updateRobotStatus(robotId, true);
+            }
         },
         error: function(xhr, status, error) {
             console.error("[Status Poll] " + robotName + " error: " + status + " - " + error);
