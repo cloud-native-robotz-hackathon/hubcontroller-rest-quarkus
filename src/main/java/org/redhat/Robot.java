@@ -14,6 +14,9 @@ public class Robot {
     String initStatus; // current initialization status of the robot
     String initStatusVerbose; // detailed error message for initialization status (shown on hover)
     String skupperState = "Skupper"; // Skupper connection state: Skupper, Token Request, Secret Cert Created, Cert retrieved
+    transient String caCert;     // CA certificate (PEM) for the robot's MicroShift API (not serialized to dashboard)
+    transient String clientCert;  // client certificate (PEM) for authenticating to the robot's MicroShift (not serialized to dashboard)
+    transient String clientKey;   // client private key (PEM) for authenticating to the robot's MicroShift (not serialized to dashboard)
 
     public Robot(String name) {
         this.name = name;
@@ -97,4 +100,29 @@ public class Robot {
     public void setSkupperState(String skupperState) {
         this.skupperState = skupperState;
     }
+
+    public String getCaCert() {
+        return caCert;
+    }
+
+    public void setCaCert(String caCert) {
+        this.caCert = caCert;
+    }
+
+    public String getClientCert() {
+        return clientCert;
+    }
+
+    public void setClientCert(String clientCert) {
+        this.clientCert = clientCert;
+    }
+
+    public String getClientKey() {
+        return clientKey;
+    }
+
+    public void setClientKey(String clientKey) {
+        this.clientKey = clientKey;
+    }
+
 }

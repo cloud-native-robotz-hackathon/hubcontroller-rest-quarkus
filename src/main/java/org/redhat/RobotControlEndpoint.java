@@ -264,6 +264,59 @@ public class RobotControlEndpoint {
         }
     }
 
+    @POST
+    @Path("/setRobotCreds")
+    @Operation(summary = "Stores MicroShift API credentials (CA cert, client cert, client key) for a robot.")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response setRobotCreds(
+            @Parameter(description = "Robot name", required = true)
+            @FormParam("robot_name") String robotName,
+            @Parameter(description = "CA certificate in PEM format", required = true)
+            @FormParam("ca_cert") String caCert,
+            @Parameter(description = "Client certificate in PEM format", required = true)
+            @FormParam("client_cert") String clientCert,
+            @Parameter(description = "Client private key in PEM format", required = true)
+            @FormParam("client_key") String clientKey) {
+
+        String sanitizedName = InputSanitizer.sanitizeRobotName(robotName);
+        if (sanitizedName == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("robot_name form parameter is required and must contain valid characters")
+                    .build();
+        }
+
+        if (caCert == null || caCert.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("ca_cert form parameter is required")
+                    .build();
+        }
+
+        if (clientCert == null || clientCert.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("client_cert form parameter is required")
+                    .build();
+        }
+
+        if (clientKey == null || clientKey.isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("client_key form parameter is required")
+                    .build();
+        }
+
+        System.out.println("Storing MicroShift credentials for robot '" + sanitizedName + "'");
+
+        boolean updated = robotStatusController.setRobotCreds(sanitizedName, caCert, clientCert, clientKey);
+
+        if (updated) {
+            return Response.ok("MicroShift credentials stored for robot: " + sanitizedName).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Robot not found: " + sanitizedName)
+                    .build();
+        }
+    }
+
     /**
      * Ensures the robot namespace exists.
      * Creates it if it doesn't exist.
