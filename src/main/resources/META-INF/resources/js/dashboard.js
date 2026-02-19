@@ -788,11 +788,8 @@ function createRobotCard(robotName, robotId, robotMessage) {
     const safeRobotName = escapeHtml(robotName);
     const safeRobotId = escapeHtml(robotId);
     
-    // Create stopwatch for this robot
-    stopwatches[robotId] = new Stopwatch(robotId);
-    
     return `
-        <div class="robot-card" id="card-${safeRobotId}">
+        <div class="robot-card compact" id="card-${safeRobotId}">
             <div class="card-header">
                 <div class="robot-icon">
                     <i class="bi bi-robot"></i>
@@ -804,9 +801,6 @@ function createRobotCard(robotName, robotId, robotMessage) {
                             <span id="${safeRobotId}-status-text">${skupperState}</span>
                         </div>
                     </div>
-                    <button class="fullscreen-btn" id="${safeRobotId}-fullscreen-btn" onclick="toggleFullscreen('${safeRobotId}', '${safeRobotName}')" title="Toggle fullscreen">
-                        <i class="bi bi-arrows-fullscreen"></i>
-                    </button>
                 </div>
             </div>
             <div class="card-body">
@@ -833,22 +827,6 @@ function createRobotCard(robotName, robotId, robotMessage) {
                         </div>
                     </div>
                 </div>
-                <div class="log-section" id="${safeRobotId}-log-section">
-                    <div class="log-label">
-                        <span class="log-label-text">
-                            <i class="bi bi-terminal"></i>
-                            Pod Logs
-                        </span>
-                        <span class="log-status loading" id="${safeRobotId}-log-status">Waiting...</span>
-                    </div>
-                    <div class="log-view">
-                        <pre class="log-content" id="${safeRobotId}-log-content" style="display: none;"></pre>
-                        <div class="log-placeholder" id="${safeRobotId}-log-placeholder">
-                            <i class="bi bi-terminal"></i>
-                            Logs will appear in fullscreen view
-                        </div>
-                    </div>
-                </div>
                 <div class="stats-grid">
                     <div class="stat-item">
                         <div class="stat-label">Operations</div>
@@ -858,29 +836,6 @@ function createRobotCard(robotName, robotId, robotMessage) {
                         <div class="stat-label">Last Action</div>
                         <div class="stat-value operation" id="${safeRobotId}-last-operation">—</div>
                     </div>
-                </div>
-                <div class="stopwatch-section">
-                    <div class="stopwatch-label">
-                        <i class="bi bi-stopwatch"></i>
-                        Stopwatch
-                    </div>
-                    <div class="stopwatch-display" id="${safeRobotId}-stopwatch-display">00:00.00</div>
-                    <div class="stopwatch-controls">
-                        <button class="stopwatch-btn reset" id="${safeRobotId}-stopwatch-reset" onclick="resetStopwatch('${safeRobotId}')">
-                            <i class="bi bi-arrow-counterclockwise"></i>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <button class="btn btn-secondary" onclick="disconnect('${safeRobotId}')">
-                        <i class="bi bi-plug-fill"></i>
-                        <span id="${safeRobotId}-disconnect-text">${buttonText}</span>
-                    </button>
-                    <button class="btn btn-primary" onclick="toggleApp('${safeRobotId}')">
-                        <i class="bi bi-play-fill"></i>
-                        Run App
-                    </button>
                 </div>
             </div>
         </div>

@@ -142,6 +142,14 @@
       gap: 2rem;
     }
 
+    .main-content.full-width {
+      max-width: none;
+    }
+
+    .main-content.full-width .robots-section {
+      width: 100%;
+    }
+
     .robots-section {
       flex: 1;
       min-width: 0;
@@ -326,6 +334,28 @@
       overflow: hidden;
       transition: all 0.3s ease;
       animation: fadeSlideIn 0.4s ease;
+    }
+
+    /* Compact robot card (without stopwatch, buttons) */
+    .robot-card.compact .card-body {
+      padding: 0.75rem 1rem;
+    }
+
+    .robot-card.compact .robot-name {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .robot-card.compact .camera-section {
+      margin-bottom: 0.5rem;
+    }
+
+    .robot-card.compact .stats-grid {
+      gap: 0.5rem;
+    }
+
+    .robot-card.compact .stat-item {
+      padding: 0.5rem;
     }
 
     @keyframes fadeSlideIn {
@@ -1167,6 +1197,9 @@
           <span class="app-version" id="app-version">v...</span>
           <span class="app-build-time" id="app-build-time">Build: ...</span>
         </div>
+        <a href="/hackathon-leaderboard.html" target="_blank" class="nav-link">
+          <i class="bi bi-display"></i> Leaderboard
+        </a>
         <div class="toggle-container">
           <span class="toggle-label">
             <i class="bi bi-camera-video"></i>
@@ -1188,7 +1221,7 @@
     </div>
   </header>
 
-  <main class="main-content">
+  <main class="main-content full-width">
     <div class="robots-section">
       <div class="section-header">
         <h1 class="section-title">Registered Robots</h1>
@@ -1203,28 +1236,7 @@
         </div>
       </div>
     </div>
-
-    <aside class="leaderboard-section">
-      <div class="leaderboard-container">
-        <div class="leaderboard">
-          <div class="leaderboard-header">
-            <i class="bi bi-trophy-fill"></i>
-            <h2 class="leaderboard-title">Leaderboard</h2>
-          </div>
-          <div class="leaderboard-body" id="leaderboard-body">
-            <div class="leaderboard-empty" id="leaderboard-empty">
-              <i class="bi bi-stopwatch"></i>
-              No times recorded yet
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
   </main>
-
-  <!-- Fullscreen Overlay -->
-  <div class="fullscreen-overlay" id="fullscreen-overlay" onclick="closeFullscreenOnOverlay(event)">
-  </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>

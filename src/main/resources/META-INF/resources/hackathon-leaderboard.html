@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Hackathon Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2332;
+      --bg-card-hover: #222d3f;
+      --accent-primary: #00d4aa;
+      --accent-secondary: #0ea5e9;
+      --accent-warning: #f59e0b;
+      --accent-danger: #ef4444;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: #2d3a4f;
+      --shadow-glow: 0 0 30px rgba(0, 212, 170, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(ellipse at 10% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1920px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      filter: drop-shadow(0 0 8px rgba(0, 212, 170, 0.5));
+    }
+
+    .brand-text {
+      font-weight: 600;
+      font-size: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text span {
+      color: var(--accent-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-danger);
+    }
+
+    .status-dot.connected {
+      background: var(--accent-primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(0, 212, 170, 0); }
+    }
+
+    /* Main Content */
+    .main-content {
+      max-width: 1920px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .robots-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .robot-count {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* Robot Grid */
+    .robot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    /* Leaderboard */
+    .leaderboard-section {
+      width: 350px;
+      flex-shrink: 0;
+    }
+
+    .leaderboard-container {
+      position: sticky;
+      top: 90px;
+    }
+
+    .leaderboard {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .leaderboard-header {
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(14, 165, 233, 0.1));
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .leaderboard-header i {
+      font-size: 1.5rem;
+      color: var(--accent-primary);
+    }
+
+    .leaderboard-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .leaderboard-body {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+
+    .leaderboard-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .leaderboard-body::-webkit-scrollbar-track {
+      background: var(--bg-card);
+    }
+
+    .leaderboard-body::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .leaderboard-empty {
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .leaderboard-empty i {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 0.75rem;
+      opacity: 0.5;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .leaderboard-item:last-child {
+      border-bottom: none;
+    }
+
+    .leaderboard-item:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .leaderboard-item:hover .leaderboard-remove {
+      opacity: 1;
+    }
+
+    .leaderboard-rank {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-right: 1rem;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+    }
+
+    .leaderboard-item:nth-child(1) .leaderboard-rank {
+      background: linear-gradient(135deg, #ffd700, #ffb700);
+      color: var(--bg-primary);
+    }
+
+    .leaderboard-item:nth-child(2) .leaderboard-rank {
+      background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
+      color: var(--bg-primary);
+    }
+
+    .leaderboard-item:nth-child(3) .leaderboard-rank {
+      background: linear-gradient(135deg, #cd7f32, #b87333);
+      color: var(--bg-primary);
+    }
+
+    .leaderboard-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .leaderboard-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .leaderboard-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+      margin-left: 1rem;
+    }
+
+    .leaderboard-remove {
+      opacity: 0;
+      background: var(--accent-danger);
+      border: none;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .leaderboard-remove:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    /* Robot Card */
+    .robot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .robot-card:hover {
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      padding: 1rem 1.25rem;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.05), rgba(14, 165, 233, 0.05));
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .robot-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: var(--bg-primary);
+    }
+
+    .card-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .robot-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .robot-status-indicator.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+    }
+
+    .robot-status-indicator.online {
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent-primary);
+    }
+
+    .robot-status-indicator i {
+      font-size: 0.5rem;
+    }
+
+    .card-body {
+      padding: 1rem 1.25rem;
+    }
+
+    .robot-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      word-break: break-all;
+    }
+
+    /* Camera Section */
+    .camera-section {
+      margin-bottom: 0.75rem;
+    }
+
+    .camera-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .camera-label-text {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .camera-status {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .camera-status.loading {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-warning);
+    }
+
+    .camera-status.connected {
+      background: rgba(0, 212, 170, 0.2);
+      color: var(--accent-primary);
+    }
+
+    .camera-status.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-danger);
+    }
+
+    .camera-view {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-view img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .camera-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .camera-placeholder i {
+      font-size: 1.5rem;
+      opacity: 0.5;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .stat-item {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+    }
+
+    .stat-value.operation {
+      font-size: 0.75rem;
+      color: var(--accent-secondary);
+    }
+
+    .stat-value.operation i {
+      margin-right: 0.25rem;
+    }
+
+    /* Fullscreen Overlay */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 14, 23, 0.95);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .fullscreen-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .fullscreen-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: calc(100% - 4rem);
+      max-width: 1400px;
+      max-height: calc(100vh - 4rem);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fullscreen-header {
+      padding: 1.5rem 2rem;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.05), rgba(14, 165, 233, 0.05));
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .fullscreen-header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .fullscreen-robot-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .fullscreen-close {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      transition: all 0.2s ease;
+    }
+
+    .fullscreen-close:hover {
+      background: var(--accent-danger);
+      border-color: var(--accent-danger);
+    }
+
+    .fullscreen-body {
+      padding: 2rem;
+      display: flex;
+      gap: 2rem;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .fullscreen-camera {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fullscreen-camera-view {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .fullscreen-camera-view img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .fullscreen-logs {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fullscreen-section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .fullscreen-log-view {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fullscreen-log-content {
+      flex: 1;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .fullscreen-log-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .fullscreen-log-content::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    .fullscreen-log-content::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      color: var(--accent-primary);
+      margin-bottom: 1.5rem;
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* Responsive */
+    @media (max-width: 1400px) {
+      .robot-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .main-content {
+        flex-direction: column;
+      }
+
+      .leaderboard-section {
+        width: 100%;
+        order: -1;
+      }
+
+      .leaderboard-container {
+        position: relative;
+        top: 0;
+      }
+
+      .leaderboard-body {
+        max-height: 300px;
+      }
+
+      .fullscreen-body {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+      
+      .brand-text {
+        font-size: 1.25rem;
+      }
+
+      .main-content {
+        padding: 1rem;
+      }
+
+      .robot-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="brand">
+        <img src="image.png" alt="Robot Hackathon Logo">
+        <div class="brand-text">Robo <span>Hackathon</span> Leaderboard</div>
+      </div>
+      <div class="header-actions">
+        <div class="status-badge" id="connection-status">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="robots-section">
+      <div class="section-header">
+        <h1 class="section-title">Live Robot Cameras</h1>
+        <span class="robot-count" id="robot-count">0 robots</span>
+      </div>
+      
+      <div class="robot-grid" id="robotList">
+        <div class="empty-state" id="empty-state">
+          <i class="bi bi-robot empty-icon"></i>
+          <div class="empty-title">No robots registered</div>
+          <div class="empty-text">Robots will appear here once they connect</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="leaderboard-section">
+      <div class="leaderboard-container">
+        <div class="leaderboard">
+          <div class="leaderboard-header">
+            <i class="bi bi-trophy-fill"></i>
+            <h2 class="leaderboard-title">Leaderboard</h2>
+          </div>
+          <div class="leaderboard-body" id="leaderboard-body">
+            <div class="leaderboard-empty" id="leaderboard-empty">
+              <i class="bi bi-stopwatch"></i>
+              No times recorded yet
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Fullscreen Overlay -->
+  <div class="fullscreen-overlay" id="fullscreen-overlay">
+    <div class="fullscreen-card" id="fullscreen-card">
+      <div class="fullscreen-header">
+        <div class="fullscreen-header-left">
+          <div class="robot-icon">
+            <i class="bi bi-robot"></i>
+          </div>
+          <span class="fullscreen-robot-name" id="fullscreen-robot-name"></span>
+          <div class="robot-status-indicator offline" id="fullscreen-status-badge">
+            <i class="bi bi-circle-fill"></i>
+            <span id="fullscreen-status-text">Offline</span>
+          </div>
+        </div>
+        <button class="fullscreen-close" onclick="closeFullscreen()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="fullscreen-body">
+        <div class="fullscreen-camera">
+          <div class="fullscreen-section-title">
+            <i class="bi bi-camera-video"></i>
+            Camera Feed
+          </div>
+          <div class="fullscreen-camera-view">
+            <img id="fullscreen-camera-img" style="display: none;" alt="Camera feed">
+            <div class="camera-placeholder" id="fullscreen-camera-placeholder">
+              <i class="bi bi-camera-video"></i>
+              Waiting for feed...
+            </div>
+          </div>
+        </div>
+        <div class="fullscreen-logs">
+          <div class="fullscreen-section-title">
+            <i class="bi bi-terminal"></i>
+            Pod Logs
+          </div>
+          <div class="fullscreen-log-view">
+            <pre class="fullscreen-log-content" id="fullscreen-log-content">Connecting to logs...</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="js/hackathon-leaderboard.js" defer></script>
+</body>
+
+</html>
