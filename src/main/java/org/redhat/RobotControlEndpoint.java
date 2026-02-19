@@ -311,13 +311,7 @@ public class RobotControlEndpoint {
 
         System.out.println("Storing MicroShift credentials for robot '" + sanitizedName + "'");
 
-        boolean updated = robotStatusController.setRobotCreds(sanitizedName, caCert, clientCert, clientKey);
-
-        if (!updated) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Robot not found: " + sanitizedName)
-                    .build();
-        }
+        robotStatusController.setRobotCreds(sanitizedName, caCert, clientCert, clientKey);
 
         if (LaunchMode.current() != LaunchMode.TEST && LaunchMode.current() != LaunchMode.DEVELOPMENT) {
             try {

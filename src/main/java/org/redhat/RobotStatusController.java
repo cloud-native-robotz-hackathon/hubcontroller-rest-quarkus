@@ -119,14 +119,14 @@ public class RobotStatusController {
         return true;
     }
 
-    // set MicroShift credentials for robot
-    // @returns true if credentials were set, false if robot not found
+    // set MicroShift credentials for robot, registering it if not yet known
+    // @returns true if credentials were set
     public boolean setRobotCreds(String name, String caCert, String clientCert, String clientKey) {
         Robot robotMatch = findRobotByName(name);
 
         if (robotMatch == null) {
-            System.err.println("Robot not found: " + name);
-            return false;
+            registerRobot(name);
+            robotMatch = findRobotByName(name);
         }
         
         robotMatch.setCaCert(caCert);
