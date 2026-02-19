@@ -54,6 +54,11 @@ public class RobotControlEndpoint {
     // Skupper site controller namespace
     private static final String OPENSHIFT_OPERATORS_NAMESPACE = "openshift-operators";
 
+    // ArgoCD cluster secret namespace and label
+    private static final String GITOPS_NAMESPACE = "openshift-gitops";
+    private static final String ARGOCD_SECRET_TYPE_LABEL = "argocd.argoproj.io/secret-type";
+    private static final String ARGOCD_SECRET_TYPE_CLUSTER = "cluster";
+
     // In-memory cache for robot UUIDs (used in test/dev mode when OpenShift is not available)
     private final java.util.Map<String, String> robotUuidCache = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -308,13 +313,56 @@ public class RobotControlEndpoint {
 
         boolean updated = robotStatusController.setRobotCreds(sanitizedName, caCert, clientCert, clientKey);
 
-        if (updated) {
-            return Response.ok("MicroShift credentials stored for robot: " + sanitizedName).build();
-        } else {
+        if (!updated) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Robot not found: " + sanitizedName)
                     .build();
         }
+
+        if (LaunchMode.current() != LaunchMode.TEST && LaunchMode.current() != LaunchMode.DEVELOPMENT) {
+            try {
+                createOrUpdateArgoCDClusterSecret(sanitizedName, clientCert, clientKey);
+            } catch (Exception e) {
+                System.err.println("Failed to create ArgoCD cluster secret for robot '" + sanitizedName + "': " + e.getMessage());
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity("Credentials stored but failed to create ArgoCD cluster secret: " + e.getMessage())
+                        .build();
+            }
+        }
+
+        return Response.ok("MicroShift credentials stored for robot: " + sanitizedName).build();
+    }
+
+    private void createOrUpdateArgoCDClusterSecret(String robotName, String clientCert, String clientKey) {
+        String secretName = "cluster-" + robotName;
+        String serverUrl = "https://" + robotName + ".robot.svc.cluster.local.:6443";
+
+        String configJson = "{\n" +
+                "  \"tlsClientConfig\": {\n" +
+                "    \"insecure\": true,\n" +
+                "    \"certData\": \"" + clientCert.replace("\n", "\\n") + "\",\n" +
+                "    \"keyData\": \"" + clientKey.replace("\n", "\\n") + "\"\n" +
+                "  }\n" +
+                "}";
+
+        Secret secret = new SecretBuilder()
+                .withNewMetadata()
+                    .withName(secretName)
+                    .withNamespace(GITOPS_NAMESPACE)
+                    .addToLabels(ARGOCD_SECRET_TYPE_LABEL, ARGOCD_SECRET_TYPE_CLUSTER)
+                .endMetadata()
+                .withType("Opaque")
+                .addToStringData("name", robotName)
+                .addToStringData("server", serverUrl)
+                .addToStringData("config", configJson)
+                .build();
+
+        openShiftClient.secrets()
+                .inNamespace(GITOPS_NAMESPACE)
+                .resource(secret)
+                .createOrReplace();
+
+        System.out.println("Created/updated ArgoCD cluster secret '" + secretName + "' in namespace '" + GITOPS_NAMESPACE + "'");
     }
 
     /**
