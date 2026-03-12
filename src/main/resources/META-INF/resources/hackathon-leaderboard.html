@@ -592,6 +592,102 @@
       border-color: var(--accent-danger);
     }
 
+    .fullscreen-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem 2rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .fullscreen-stopwatch-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .fullscreen-stopwatch-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .fullscreen-stopwatch-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.05em;
+      min-width: 120px;
+    }
+
+    .fullscreen-stopwatch-display.running {
+      color: var(--accent-primary);
+    }
+
+    .fullscreen-stopwatch-reset {
+      padding: 0.4rem 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .fullscreen-stopwatch-reset:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--accent-danger);
+    }
+
+    .fullscreen-stopwatch-reset:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .fullscreen-app-btn {
+      padding: 0.5rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: var(--bg-primary);
+    }
+
+    .fullscreen-app-btn:hover {
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-1px);
+    }
+
+    .fullscreen-app-btn.btn-danger {
+      background: linear-gradient(135deg, var(--accent-danger), #dc2626);
+      color: white;
+    }
+
+    .fullscreen-app-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .fullscreen-body {
       padding: 2rem;
       display: flex;
@@ -817,6 +913,20 @@
         </div>
         <button class="fullscreen-close" onclick="closeFullscreen()">
           <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="fullscreen-toolbar">
+        <div class="fullscreen-stopwatch-section">
+          <div class="fullscreen-stopwatch-label">
+            <i class="bi bi-stopwatch"></i> Time
+          </div>
+          <span class="fullscreen-stopwatch-display" id="fullscreen-stopwatch-display">00:00.00</span>
+          <button type="button" class="fullscreen-stopwatch-reset" id="fullscreen-stopwatch-reset" onclick="resetFullscreenStopwatch()" title="Reset">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+        </div>
+        <button type="button" class="fullscreen-app-btn" id="fullscreen-app-btn" onclick="toggleFullscreenApp()">
+          <i class="bi bi-play-fill"></i> Run App
         </button>
       </div>
       <div class="fullscreen-body">

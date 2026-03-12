@@ -6,6 +6,8 @@ const cameraIntervals = {};
 const statusIntervals = {};
 const robotTimes = {};
 const robotOnlineState = {};
+const stopwatches = {};
+const appRunningState = {};
 const CAMERA_REFRESH_INTERVAL = 1000;
 const STATUS_POLL_INTERVAL = 5000;
 const LOG_REFRESH_INTERVAL = 3000;
@@ -16,6 +18,69 @@ let fullscreenCameraInterval = null;
 let fullscreenLogInterval = null;
 
 console.log("Initializing Hackathon Leaderboard...");
+
+// Stopwatch class for fullscreen (and per-robot timing)
+class Stopwatch {
+    constructor(robotId) {
+        this.robotId = robotId;
+        this.startTime = 0;
+        this.elapsedTime = 0;
+        this.running = false;
+        this.intervalId = null;
+    }
+
+    start() {
+        if (!this.running) {
+            this.startTime = Date.now() - this.elapsedTime;
+            this.running = true;
+            this.intervalId = setInterval(() => this.update(), 10);
+            this.updateFullscreenDisplay();
+        }
+    }
+
+    stop() {
+        if (this.running) {
+            this.running = false;
+            this.elapsedTime = Date.now() - this.startTime;
+            if (this.intervalId) {
+                clearInterval(this.intervalId);
+                this.intervalId = null;
+            }
+            this.updateFullscreenDisplay();
+        }
+    }
+
+    reset() {
+        this.stop();
+        this.elapsedTime = 0;
+        this.updateFullscreenDisplay();
+    }
+
+    update() {
+        this.elapsedTime = Date.now() - this.startTime;
+        this.updateFullscreenDisplay();
+    }
+
+    updateFullscreenDisplay() {
+        const display = document.getElementById('fullscreen-stopwatch-display');
+        const resetBtn = document.getElementById('fullscreen-stopwatch-reset');
+        if (display && currentFullscreenRobot === this.robotId) {
+            display.textContent = this.formatTime(this.elapsedTime);
+            display.classList.toggle('running', this.running);
+        }
+        if (resetBtn && currentFullscreenRobot === this.robotId) {
+            resetBtn.disabled = this.running;
+        }
+    }
+
+    formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const centiseconds = Math.floor((ms % 1000) / 10);
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+    }
+}
 
 function escapeHtml(text) {
     if (text == null) return '';
@@ -258,6 +323,10 @@ function openFullscreen(robotId, robotName) {
     currentFullscreenRobot = robotId;
     currentFullscreenRobotName = robotName;
     
+    if (!stopwatches[robotId]) {
+        stopwatches[robotId] = new Stopwatch(robotId);
+    }
+    
     const overlay = document.getElementById('fullscreen-overlay');
     document.getElementById('fullscreen-robot-name').textContent = robotName;
     
@@ -276,6 +345,12 @@ function openFullscreen(robotId, robotName) {
         fsStatusText.textContent = 'Offline';
     }
     
+    // Sync stopwatch display and reset button
+    stopwatches[robotId].updateFullscreenDisplay();
+    
+    // Sync Run App / Stop App button
+    updateFullscreenAppButton();
+    
     // Reset camera placeholder
     document.getElementById('fullscreen-camera-img').style.display = 'none';
     document.getElementById('fullscreen-camera-placeholder').style.display = 'flex';
@@ -289,6 +364,110 @@ function openFullscreen(robotId, robotName) {
     
     // Start fullscreen log stream
     startFullscreenLogStream(robotName);
+}
+
+function resetFullscreenStopwatch() {
+    if (currentFullscreenRobot && stopwatches[currentFullscreenRobot]) {
+        stopwatches[currentFullscreenRobot].reset();
+    }
+}
+
+function toggleFullscreenApp() {
+    if (!currentFullscreenRobot) return;
+    if (appRunningState[currentFullscreenRobot]) {
+        stopAppFullscreen();
+    } else {
+        runAppFullscreen();
+    }
+}
+
+function runAppFullscreen() {
+    const robotId = currentFullscreenRobot;
+    if (!robotId) return;
+    const btn = document.getElementById('fullscreen-app-btn');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Starting...';
+    
+    $.ajax({
+        url: location.protocol + '//' + location.host + '/robot/runapp/' + robotId,
+        method: 'POST',
+        success: function() {
+            appRunningState[robotId] = true;
+            if (stopwatches[robotId]) stopwatches[robotId].start();
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Started!';
+            setTimeout(function() {
+                updateFullscreenAppButton();
+                btn.disabled = false;
+            }, 1000);
+        },
+        error: function() {
+            btn.innerHTML = '<i class="bi bi-x-lg"></i> Error';
+            setTimeout(function() {
+                updateFullscreenAppButton();
+                btn.disabled = false;
+            }, 2000);
+        }
+    });
+}
+
+function stopAppFullscreen() {
+    const robotId = currentFullscreenRobot;
+    if (!robotId) return;
+    const btn = document.getElementById('fullscreen-app-btn');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Stopping...';
+    
+    $.ajax({
+        url: location.protocol + '//' + location.host + '/robot/stopapp/' + robotId,
+        method: 'POST',
+        success: function() {
+            appRunningState[robotId] = false;
+            if (stopwatches[robotId]) {
+                stopwatches[robotId].stop();
+                if (stopwatches[robotId].elapsedTime > 0 && currentFullscreenRobotName) {
+                    robotTimes[robotId] = { name: currentFullscreenRobotName, time: stopwatches[robotId].elapsedTime };
+                    updateLeaderboard();
+                }
+            }
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Stopped!';
+            setTimeout(function() {
+                updateFullscreenAppButton();
+                btn.disabled = false;
+            }, 1000);
+        },
+        error: function() {
+            appRunningState[robotId] = false;
+            if (stopwatches[robotId]) {
+                stopwatches[robotId].stop();
+                if (stopwatches[robotId].elapsedTime > 0 && currentFullscreenRobotName) {
+                    robotTimes[robotId] = { name: currentFullscreenRobotName, time: stopwatches[robotId].elapsedTime };
+                    updateLeaderboard();
+                }
+            }
+            btn.innerHTML = '<i class="bi bi-x-lg"></i> Error';
+            setTimeout(function() {
+                updateFullscreenAppButton();
+                btn.disabled = false;
+            }, 2000);
+        }
+    });
+}
+
+function updateFullscreenAppButton() {
+    const btn = document.getElementById('fullscreen-app-btn');
+    if (!btn || !currentFullscreenRobot) return;
+    const isRunning = appRunningState[currentFullscreenRobot];
+    if (isRunning) {
+        btn.className = 'fullscreen-app-btn btn-danger';
+        btn.innerHTML = '<i class="bi bi-stop-fill"></i> Stop App';
+    } else {
+        btn.className = 'fullscreen-app-btn';
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Run App';
+    }
 }
 
 function closeFullscreen() {
@@ -494,15 +673,18 @@ function initWebSocket() {
                         hideEmptyState();
                         updateRobotCount();
                         
+                        if (!stopwatches[robotId]) {
+                            stopwatches[robotId] = new Stopwatch(robotId);
+                        }
+                        if (!robotTimes[robotId]) {
+                            robotTimes[robotId] = { name: robotName, time: 0 };
+                        }
+                        
                         const cardHtml = createRobotCard(robotName, robotId, robotMessage);
                         document.getElementById('robotList').insertAdjacentHTML('beforeend', cardHtml);
                         
                         startCameraStream(robotName, robotId);
                         startStatusPolling(robotName, robotId);
-                        
-                        if (!robotTimes[robotId]) {
-                            robotTimes[robotId] = { name: robotName, time: 0 };
-                        }
                     }
                     
                     const operation = robotMessage.operation;
