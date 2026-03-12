@@ -153,20 +153,25 @@ function fetchCameraImage(robotName, robotId) {
         url: location.protocol + '//' + location.host + '/robot/camera',
         method: 'GET',
         data: { user_key: robotName },
+        dataType: 'text',
         timeout: 5000,
         success: function(response) {
-            if (response && response.length > 100 && response.startsWith('data:image')) {
-                imgEl.src = response;
-                imgEl.style.display = 'block';
-                placeholderEl.style.display = 'none';
-                statusEl.textContent = 'Live';
-                statusEl.className = 'camera-status connected';
-            } else {
+            if (!response || response === 'Robot Not Registered' || response === 'Robot Disconnected' || response === 'Connection Error') {
                 imgEl.style.display = 'none';
                 placeholderEl.style.display = 'flex';
-                statusEl.textContent = 'No feed';
+                statusEl.textContent = response || 'No feed';
                 statusEl.className = 'camera-status error';
+                return;
             }
+            var dataUrl = response;
+            if (!response.startsWith('data:image')) {
+                dataUrl = 'data:image/png;base64,' + response;
+            }
+            imgEl.src = dataUrl;
+            imgEl.style.display = 'block';
+            placeholderEl.style.display = 'none';
+            statusEl.textContent = 'Live';
+            statusEl.className = 'camera-status connected';
         },
         error: function() {
             imgEl.style.display = 'none';
@@ -327,16 +332,18 @@ function fetchFullscreenCameraImage(robotName) {
         url: location.protocol + '//' + location.host + '/robot/camera',
         method: 'GET',
         data: { user_key: robotName },
+        dataType: 'text',
         timeout: 5000,
         success: function(response) {
-            if (response && response.length > 100 && response.startsWith('data:image')) {
-                imgEl.src = response;
-                imgEl.style.display = 'block';
-                placeholderEl.style.display = 'none';
-            } else {
+            if (!response || response === 'Robot Not Registered' || response === 'Robot Disconnected' || response === 'Connection Error') {
                 imgEl.style.display = 'none';
                 placeholderEl.style.display = 'flex';
+                return;
             }
+            var dataUrl = response.startsWith('data:image') ? response : 'data:image/png;base64,' + response;
+            imgEl.src = dataUrl;
+            imgEl.style.display = 'block';
+            placeholderEl.style.display = 'none';
         },
         error: function() {
             imgEl.style.display = 'none';

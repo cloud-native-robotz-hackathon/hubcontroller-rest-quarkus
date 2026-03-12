@@ -340,6 +340,63 @@ public class RobotEndpoint {
                 return response.body();
         }
 
+        @POST
+        @Path("/led_on/{color}")
+        @Operation(summary = "Turn on robot LED eyes with the specified color (red, green, blue)")
+        @Produces("text/html")
+        public String ledOn(
+                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey,
+                        @Parameter(description = "LED color: red, green, or blue", required = true) @RestPath("color") String color)
+                        throws URISyntaxException, IOException, InterruptedException {
+
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": led_on called -> " + color);
+
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
+                        return "Robot Not Registered";
+
+                if (robotStatusController.updateRobot(sanitizedKey, "led_on"))
+                        return "Robot Disconnected";
+
+                String sanitizedColor = color.toLowerCase().replaceAll("[^a-z]", "");
+
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(new URI(getRobotURLFromConfigMap(sanitizedKey) + "/led_on/" + sanitizedColor))
+                                .POST(HttpRequest.BodyPublishers.noBody())
+                                .build();
+                HttpResponse<String> response = HttpClient
+                                .newBuilder().build().send(request, BodyHandlers.ofString());
+
+                return response.body();
+        }
+
+        @POST
+        @Path("/led_off")
+        @Operation(summary = "Turn off robot LED eyes")
+        @Produces("text/html")
+        public String ledOff(
+                        @Parameter(description = "The token of the robot", required = true) @RestForm(API_TOKEN) String userKey)
+                        throws URISyntaxException, IOException, InterruptedException {
+
+                String sanitizedKey = sanitizeUserKey(userKey);
+                System.out.println(sanitizedKey + ": led_off called");
+
+                if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
+                        return "Robot Not Registered";
+
+                if (robotStatusController.updateRobot(sanitizedKey, "led_off"))
+                        return "Robot Disconnected";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                                .uri(new URI(getRobotURLFromConfigMap(sanitizedKey) + "/led_off"))
+                                .POST(HttpRequest.BodyPublishers.noBody())
+                                .build();
+                HttpResponse<String> response = HttpClient
+                                .newBuilder().build().send(request, BodyHandlers.ofString());
+
+                return response.body();
+        }
+
         @GET
         @Path("/camera")
         @Operation(summary = "Get the current image from the camera")
