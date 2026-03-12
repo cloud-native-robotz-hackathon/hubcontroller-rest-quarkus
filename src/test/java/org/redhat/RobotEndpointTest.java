@@ -215,4 +215,62 @@ class RobotEndpointTest {
                                                 "10"));
         }
 
+        @Test
+        void testRobotEndpointRunApp() {
+                mockServerClient
+                                .when(request()
+                                                .withPath("/run")
+                                                .withMethod("POST")
+                                                .withHeader("Host", "starterapp-python-robot-app.apps.data"))
+                                .respond(
+                                                httpRequest -> response()
+                                                                .withStatusCode(200)
+                                                                .withHeader("Content-Type", "text/html")
+                                                                .withBody("App started"));
+
+                given()
+                                .when().post("/robot/runapp/data")
+                                .then()
+                                .statusCode(200)
+                                .body(is("App started"));
+        }
+
+        @Test
+        void testRobotEndpointStopApp() {
+                mockServerClient
+                                .when(request()
+                                                .withPath("/stop")
+                                                .withMethod("POST")
+                                                .withHeader("Host", "starterapp-python-robot-app.apps.data"))
+                                .respond(
+                                                httpRequest -> response()
+                                                                .withStatusCode(200)
+                                                                .withHeader("Content-Type", "text/html")
+                                                                .withBody("App stopped"));
+
+                given()
+                                .when().post("/robot/stopapp/data")
+                                .then()
+                                .statusCode(200)
+                                .body(is("App stopped"));
+        }
+
+        @Test
+        void testRobotEndpointRunAppInvalidRobot() {
+                given()
+                                .when().post("/robot/runapp/nonexistent")
+                                .then()
+                                .statusCode(200)
+                                .body(is("Robot Not Found"));
+        }
+
+        @Test
+        void testRobotEndpointStopAppInvalidRobot() {
+                given()
+                                .when().post("/robot/stopapp/nonexistent")
+                                .then()
+                                .statusCode(200)
+                                .body(is("Robot Not Found"));
+        }
+
 }

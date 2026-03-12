@@ -8,6 +8,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
@@ -22,6 +25,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
 import io.quarkus.runtime.LaunchMode;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -36,13 +42,9 @@ import jakarta.ws.rs.Produces;
 // The main controller, that passes RESTful calls on to the matching robot API
 public class RobotEndpoint {
 
-        static {
-                // Allow custom Host header for runapp/stopapp (virtual-host routing to robot's Python app).
-                // Required because java.net.http.HttpClient restricts the Host header by default.
-                System.setProperty("jdk.httpclient.allowRestrictedHeaders", "host");
-        }
-
         private static final String RESPONSE_OK = "OK";
+        private static final int ROBOT_APP_HTTP_PORT = 80;
+        private static final int ROBOT_APP_REQUEST_TIMEOUT_SEC = 15;
 
         // The robot token being sent das parameter by the users
         private static final String API_TOKEN = "user_key";
@@ -61,6 +63,16 @@ public class RobotEndpoint {
 
         @Inject
         RobotStatusController robotStatusController;
+
+        @Inject
+        Vertx vertx;
+
+        private WebClient robotAppWebClient;
+
+        @PostConstruct
+        void initRobotAppWebClient() {
+                robotAppWebClient = WebClient.create(vertx);
+        }
 
         /**
          * Sanitizes a user key for safe use.
@@ -286,7 +298,7 @@ public class RobotEndpoint {
         @Produces("text/html")
         public String runapp(
                         @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
-                        throws URISyntaxException, IOException, InterruptedException {
+                        throws InterruptedException, ExecutionException, TimeoutException {
 
                 String sanitizedId = sanitizeUserKey(robotShortId);
                 System.out.println("runapp called for robotId- > " + sanitizedId);
@@ -298,19 +310,20 @@ public class RobotEndpoint {
 
                 System.out.println("runapp resolving to robotId -> " + robotId);
 
-                System.out.println("Calling -> " + "http://" + robotId
-                                + ".robot.svc.cluster.local./run  with header -> Host: starterapp-python-robot-app.apps."
-                                + robotId);
+                int port = getRobotAppPort();
+                String connectHost = getRobotAppConnectHost(robotId);
+                String hostHeader = "starterapp-python-robot-app.apps." + robotId;
+                System.out.println("Calling -> http://" + connectHost + ":" + port + "/run with header -> Host: " + hostHeader);
 
-                HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI("http://" + robotId + ".robot.svc.cluster.local./run"))
-                                .POST(HttpRequest.BodyPublishers.noBody())
-                                .headers("Host", "starterapp-python-robot-app.apps." + robotId)
-                                .build();
-                HttpResponse<String> response = HttpClient
-                                .newBuilder().build().send(request, BodyHandlers.ofString());
+                io.vertx.ext.web.client.HttpResponse<io.vertx.core.buffer.Buffer> response = robotAppWebClient
+                                .post(port, connectHost, "/run")
+                                .putHeader("Host", hostHeader)
+                                .send()
+                                .toCompletionStage()
+                                .toCompletableFuture()
+                                .get(ROBOT_APP_REQUEST_TIMEOUT_SEC, TimeUnit.SECONDS);
 
-                return response.body();
+                return response.bodyAsString();
         }
 
         @POST
@@ -319,7 +332,7 @@ public class RobotEndpoint {
         @Produces("text/html")
         public String stopapp(
                         @Parameter(description = "The token of the robot", required = true) @RestPath("robotId") String robotShortId)
-                        throws URISyntaxException, IOException, InterruptedException {
+                        throws InterruptedException, ExecutionException, TimeoutException {
 
                 String sanitizedId = sanitizeUserKey(robotShortId);
                 System.out.println("stopapp called for robotId- > " + sanitizedId);
@@ -331,19 +344,20 @@ public class RobotEndpoint {
 
                 System.out.println("stopapp resolving to robotId -> " + robotId);
 
-                System.out.println("Calling -> " + "http://" + robotId
-                                + ".robot.svc.cluster.local./stop  with header -> Host: starterapp-python-robot-app.apps."
-                                + robotId);
+                int port = getRobotAppPort();
+                String connectHost = getRobotAppConnectHost(robotId);
+                String hostHeader = "starterapp-python-robot-app.apps." + robotId;
+                System.out.println("Calling -> http://" + connectHost + ":" + port + "/stop with header -> Host: " + hostHeader);
 
-                HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI("http://" + robotId + ".robot.svc.cluster.local./stop"))
-                                .POST(HttpRequest.BodyPublishers.noBody())
-                                .headers("Host", "starterapp-python-robot-app.apps." + robotId)
-                                .build();
-                HttpResponse<String> response = HttpClient
-                                .newBuilder().build().send(request, BodyHandlers.ofString());
+                io.vertx.ext.web.client.HttpResponse<io.vertx.core.buffer.Buffer> response = robotAppWebClient
+                                .post(port, connectHost, "/stop")
+                                .putHeader("Host", hostHeader)
+                                .send()
+                                .toCompletionStage()
+                                .toCompletableFuture()
+                                .get(ROBOT_APP_REQUEST_TIMEOUT_SEC, TimeUnit.SECONDS);
 
-                return response.body();
+                return response.bodyAsString();
         }
 
         @POST
@@ -487,5 +501,35 @@ public class RobotEndpoint {
                         return host + ".robot.svc.cluster.local.";
                 }
 
+        }
+
+        /**
+         * In test mode with mock server, returns host and port from mock server URL so runapp/stopapp hit the mock.
+         * Otherwise returns production host (robotId.robot.svc.cluster.local.) and port 80.
+         */
+        private String getRobotAppConnectHost(String robotId) {
+                if (LaunchMode.current() == LaunchMode.TEST && mockServerEndpoint != null && !mockServerEndpoint.isBlank()) {
+                        try {
+                                URI uri = new URI(mockServerEndpoint);
+                                String host = uri.getHost();
+                                return host != null ? host : robotId + ".robot.svc.cluster.local.";
+                        } catch (URISyntaxException e) {
+                                return robotId + ".robot.svc.cluster.local.";
+                        }
+                }
+                return robotId + ".robot.svc.cluster.local.";
+        }
+
+        private int getRobotAppPort() {
+                if (LaunchMode.current() == LaunchMode.TEST && mockServerEndpoint != null && !mockServerEndpoint.isBlank()) {
+                        try {
+                                URI uri = new URI(mockServerEndpoint);
+                                int port = uri.getPort();
+                                if (port > 0) return port;
+                        } catch (URISyntaxException e) {
+                                // fall through
+                        }
+                }
+                return ROBOT_APP_HTTP_PORT;
         }
 }
