@@ -36,6 +36,12 @@ import jakarta.ws.rs.Produces;
 // The main controller, that passes RESTful calls on to the matching robot API
 public class RobotEndpoint {
 
+        static {
+                // Allow custom Host header for runapp/stopapp (virtual-host routing to robot's Python app).
+                // Required because java.net.http.HttpClient restricts the Host header by default.
+                System.setProperty("jdk.httpclient.allowRestrictedHeaders", "host");
+        }
+
         private static final String RESPONSE_OK = "OK";
 
         // The robot token being sent das parameter by the users
