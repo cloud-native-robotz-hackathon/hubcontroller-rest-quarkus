@@ -7,16 +7,20 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.openshift.client.OpenShiftClient;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
@@ -55,6 +59,8 @@ public class RobotEndpoint {
         private static final String STARTER_APP_LABEL = "starterapp-python";
         private static final String STARTER_APP_LABEL_KEY = "app";
         private static final int DEFAULT_LOG_LINES = 200;
+        private static final String GITOPS_NAMESPACE = "openshift-gitops";
+        private static final String ARGOCD_CLUSTER_SECRET_PREFIX = "cluster-";
 
         // The robot token being sent das parameter by the users
         private static final String API_TOKEN = "user_key";
@@ -73,6 +79,9 @@ public class RobotEndpoint {
 
         @Inject
         RobotStatusController robotStatusController;
+
+        @Inject
+        OpenShiftClient openShiftClient;
 
         @Inject
         Vertx vertx;
@@ -480,26 +489,41 @@ public class RobotEndpoint {
                 if (robot == null)
                         return "Robot Not Registered";
 
+                String robotName = robot.getName();
                 String caCert = robot.getCaCert();
                 String clientCert = robot.getClientCert();
                 String clientKey = robot.getClientKey();
-                if (caCert == null || caCert.isBlank() || clientCert == null || clientCert.isBlank() || clientKey == null || clientKey.isBlank()) {
+
+                if ((caCert == null || caCert.isBlank() || clientCert == null || clientCert.isBlank() || clientKey == null || clientKey.isBlank())
+                                && LaunchMode.current() != LaunchMode.TEST && LaunchMode.current() != LaunchMode.DEVELOPMENT) {
+                        CertKey fromSecret = loadCredentialsFromArgoCDSecret(robotName);
+                        if (fromSecret != null) {
+                                clientCert = fromSecret.cert();
+                                clientKey = fromSecret.key();
+                                caCert = null;
+                        }
+                }
+
+                if (clientCert == null || clientCert.isBlank() || clientKey == null || clientKey.isBlank()) {
                         return "Credentials not set. Call /control/setRobotCreds for this robot to view MicroShift pod logs.";
                 }
 
                 int tailLines = (lines != null && lines > 0) ? Math.min(lines, 1000) : DEFAULT_LOG_LINES;
-                String robotName = robot.getName();
                 String masterUrl = "https://" + robotName + ".svc.cluster.local:" + MICROSHIFT_API_PORT;
 
                 try {
-                        Config config = new ConfigBuilder()
+                        ConfigBuilder configBuilder = new ConfigBuilder()
                                         .withMasterUrl(masterUrl)
-                                        .withCaCertData(caCert)
                                         .withClientCertData(clientCert)
                                         .withClientKeyData(clientKey)
                                         .withRequestTimeout(15_000)
-                                        .withConnectionTimeout(10_000)
-                                        .build();
+                                        .withConnectionTimeout(10_000);
+                        if (caCert != null && !caCert.isBlank()) {
+                                configBuilder.withCaCertData(caCert);
+                        } else {
+                                configBuilder.withTrustCerts(true);
+                        }
+                        Config config = configBuilder.build();
 
                         try (KubernetesClient microShiftClient = new KubernetesClientBuilder().withConfig(config).build()) {
                                 PodList pods = microShiftClient.pods()
@@ -528,6 +552,53 @@ public class RobotEndpoint {
                 } catch (Exception e) {
                         System.err.println("Error fetching MicroShift pod logs for robot '" + robotName + "': " + e.getMessage());
                         return "Error fetching logs: " + e.getMessage();
+                }
+        }
+
+        private record CertKey(String cert, String key) {
+        }
+
+        /**
+         * Loads client cert and key from the ArgoCD cluster secret (openshift-gitops/cluster-{robotName})
+         * if it exists. The secret's "config" holds JSON with tlsClientConfig.certData and keyData.
+         * Returns null if secret missing or config invalid. Used when in-memory credentials were not set this session.
+         */
+        private CertKey loadCredentialsFromArgoCDSecret(String robotName) {
+                if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
+                        return null;
+                }
+                try {
+                        String secretName = ARGOCD_CLUSTER_SECRET_PREFIX + robotName;
+                        Secret secret = openShiftClient.secrets()
+                                        .inNamespace(GITOPS_NAMESPACE)
+                                        .withName(secretName)
+                                        .get();
+                        if (secret == null || secret.getData() == null)
+                                return null;
+
+                        byte[] configBytes = secret.getData().get("config");
+                        if (configBytes == null)
+                                return null;
+
+                        String configJson = new String(configBytes, StandardCharsets.UTF_8);
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> config = new ObjectMapper().readValue(configJson, Map.class);
+                        Object tls = config != null ? config.get("tlsClientConfig") : null;
+                        if (!(tls instanceof Map))
+                                return null;
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> tlsConfig = (Map<String, String>) tls;
+                        String certData = tlsConfig.get("certData");
+                        String keyData = tlsConfig.get("keyData");
+                        if (certData == null || keyData == null)
+                                return null;
+
+                        certData = certData.replace("\\n", "\n");
+                        keyData = keyData.replace("\\n", "\n");
+                        return new CertKey(certData, keyData);
+                } catch (Exception e) {
+                        System.err.println("Could not load credentials from ArgoCD secret for robot '" + robotName + "': " + e.getMessage());
+                        return null;
                 }
         }
 
