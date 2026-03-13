@@ -576,9 +576,12 @@ public class RobotEndpoint {
                         if (secret == null || secret.getData() == null)
                                 return null;
 
-                        byte[] configBytes = secret.getData().get("config");
-                        if (configBytes == null)
+                        Object configRaw = secret.getData().get("config");
+                        if (configRaw == null)
                                 return null;
+                        byte[] configBytes = configRaw instanceof byte[]
+                                        ? (byte[]) configRaw
+                                        : Base64.getDecoder().decode(configRaw.toString());
 
                         String configJson = new String(configBytes, StandardCharsets.UTF_8);
                         @SuppressWarnings("unchecked")
