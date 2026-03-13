@@ -58,6 +58,7 @@ public class RobotEndpoint {
         private static final int MICROSHIFT_API_PORT = 6443;
         private static final String STARTER_APP_LABEL = "starterapp-python";
         private static final String STARTER_APP_LABEL_KEY = "app";
+        private static final String STARTER_APP_NAMESPACE = "robot-app";
         private static final int DEFAULT_LOG_LINES = 200;
         private static final String GITOPS_NAMESPACE = "openshift-gitops";
         private static final String ARGOCD_CLUSTER_SECRET_PREFIX = "cluster-";
@@ -109,7 +110,7 @@ public class RobotEndpoint {
                         @Parameter(description = "The token of the robot", required = false) @RestQuery(API_TOKEN) String userKey) {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println("Status called -> " + sanitizedKey);
+                System.out.println("[Robot] status key=" + sanitizedKey);
                 if (sanitizedKey != null && !robotStatusController.robotExists(sanitizedKey)) {
                         return "Robot Not Registered";
                 }
@@ -146,8 +147,7 @@ public class RobotEndpoint {
 
                         return response.body();
                 } catch (Exception e) {
-                        // Log connection errors concisely - these are expected when robot is offline
-                        System.out.println(sanitizedKey + ": Connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        System.out.println("[Robot] remote_status " + sanitizedKey + " failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
                         robotStatusController.setRobotStatus(sanitizedKey, false);
                         return "Connection Error";
                 }
@@ -161,13 +161,12 @@ public class RobotEndpoint {
                         @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey)
                         throws URISyntaxException, IOException, InterruptedException {
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": Distance Status called");
+                System.out.println("[Robot] distance key=" + sanitizedKey);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
 
                 URI url = new URI(getRobotURLFromConfigMap(sanitizedKey));
-                System.out.println("Calling -> " + url);
 
                 if (robotStatusController.updateRobot(sanitizedKey, "distance"))
                         return "Robot Disconnected";
@@ -181,7 +180,6 @@ public class RobotEndpoint {
 
                 robotStatusController.setRobotStatus(sanitizedKey, true);
 
-                System.out.println("Response -> " + response.body());
                 return response.body();
         }
 
@@ -195,7 +193,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": forward called -> " + lengthInCm);
+                System.out.println("[Robot] forward key=" + sanitizedKey + " cm=" + lengthInCm);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
@@ -223,7 +221,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": backward called -> " + lengthInCm);
+                System.out.println("[Robot] backward key=" + sanitizedKey + " cm=" + lengthInCm);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
@@ -250,7 +248,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": left called -> " + degrees);
+                System.out.println("[Robot] left key=" + sanitizedKey + " deg=" + degrees);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
@@ -277,7 +275,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": right called -> " + degrees);
+                System.out.println("[Robot] right key=" + sanitizedKey + " deg=" + degrees);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
@@ -303,7 +301,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedId = sanitizeUserKey(robotShortId);
-                System.out.println("disconnect called for robotId-> " + sanitizedId);
+                System.out.println("[Robot] disconnect id=" + sanitizedId);
 
                 if (sanitizedId == null) return false;
                 boolean isDisconnected = robotStatusController.disconnectRobot(sanitizedId);
@@ -332,8 +330,6 @@ public class RobotEndpoint {
                 int port = getRobotAppPort();
                 String connectHost = getRobotAppConnectHost(robotId);
                 String hostHeader = "starterapp-python-robot-app.apps." + robotId;
-                System.out.println("Calling -> http://" + connectHost + ":" + port + "/run with header -> Host: " + hostHeader);
-
                 io.vertx.ext.web.client.HttpResponse<io.vertx.core.buffer.Buffer> response = robotAppWebClient
                                 .post(port, connectHost, "/run")
                                 .putHeader("Host", hostHeader)
@@ -366,8 +362,6 @@ public class RobotEndpoint {
                 int port = getRobotAppPort();
                 String connectHost = getRobotAppConnectHost(robotId);
                 String hostHeader = "starterapp-python-robot-app.apps." + robotId;
-                System.out.println("Calling -> http://" + connectHost + ":" + port + "/stop with header -> Host: " + hostHeader);
-
                 io.vertx.ext.web.client.HttpResponse<io.vertx.core.buffer.Buffer> response = robotAppWebClient
                                 .post(port, connectHost, "/stop")
                                 .putHeader("Host", hostHeader)
@@ -389,7 +383,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": led_on called -> " + color);
+                System.out.println("[Robot] led_on key=" + sanitizedKey + " color=" + color);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
@@ -418,7 +412,7 @@ public class RobotEndpoint {
                         throws URISyntaxException, IOException, InterruptedException {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                System.out.println(sanitizedKey + ": led_off called");
+                System.out.println("[Robot] led_off key=" + sanitizedKey);
 
                 if (sanitizedKey == null || !robotStatusController.robotExists(sanitizedKey))
                         return "Robot Not Registered";
@@ -462,8 +456,7 @@ public class RobotEndpoint {
 
                         return response.body();
                 } catch (Exception e) {
-                        // Log connection errors concisely - these are expected when robot is offline
-                        System.out.println(sanitizedKey + ": Camera connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        System.out.println("[Robot] camera " + sanitizedKey + " failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
                         return "Connection Error";
                 }
         }
@@ -477,8 +470,11 @@ public class RobotEndpoint {
                         @Parameter(description = "Number of log lines (default 200)", required = false) @RestQuery("lines") Integer lines) {
 
                 String sanitizedKey = sanitizeUserKey(userKey);
-                if (sanitizedKey == null)
+                if (sanitizedKey == null) {
+                        System.out.println("[Logs] key=null -> Robot Not Registered");
                         return "Robot Not Registered";
+                }
+                System.out.println("[Logs] key=" + sanitizedKey);
 
                 Robot robot = robotStatusController.findRobotByShortName(sanitizedKey);
                 if (robot == null)
@@ -486,8 +482,10 @@ public class RobotEndpoint {
                                         .filter(r -> sanitizedKey.equals(r.getName()))
                                         .findFirst()
                                         .orElse(null);
-                if (robot == null)
+                if (robot == null) {
+                        System.out.println("[Logs] robot not found");
                         return "Robot Not Registered";
+                }
 
                 String robotName = robot.getName();
                 String caCert = robot.getCaCert();
@@ -501,10 +499,12 @@ public class RobotEndpoint {
                                 clientCert = fromSecret.cert();
                                 clientKey = fromSecret.key();
                                 caCert = null;
+                                System.out.println("[Logs] " + robotName + " creds from ArgoCD secret");
                         }
                 }
 
                 if (clientCert == null || clientCert.isBlank() || clientKey == null || clientKey.isBlank()) {
+                        System.out.println("[Logs] " + robotName + " no creds");
                         return "Credentials not set. Call /control/setRobotCreds for this robot to view MicroShift pod logs.";
                 }
 
@@ -527,17 +527,32 @@ public class RobotEndpoint {
 
                         try (KubernetesClient microShiftClient = new KubernetesClientBuilder().withConfig(config).build()) {
                                 PodList pods = microShiftClient.pods()
-                                                .inAnyNamespace()
+                                                .inNamespace(STARTER_APP_NAMESPACE)
                                                 .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
                                                 .list();
 
                                 if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
+                                        pods = microShiftClient.pods()
+                                                .inNamespace("default")
+                                                .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
+                                                .list();
+                                }
+                                if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
+                                        pods = microShiftClient.pods()
+                                                        .inAnyNamespace()
+                                                        .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
+                                                        .list();
+                                }
+
+                                if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
+                                        System.out.println("[Logs] " + robotName + " no pod app=" + STARTER_APP_LABEL);
                                         return "No pod with label app=" + STARTER_APP_LABEL + " found on MicroShift at " + masterUrl;
                                 }
 
                                 var pod = pods.getItems().get(0);
                                 String namespace = pod.getMetadata().getNamespace();
                                 String podName = pod.getMetadata().getName();
+                                System.out.println("[Logs] " + robotName + " pod " + namespace + "/" + podName + " lines=" + tailLines);
 
                                 String log = microShiftClient.pods()
                                                 .inNamespace(namespace)
@@ -545,12 +560,15 @@ public class RobotEndpoint {
                                                 .tailingLines(tailLines)
                                                 .getLog();
 
-                                if (log == null || log.isEmpty())
+                                if (log == null || log.isEmpty()) {
+                                        System.out.println("[Logs] " + robotName + " pod " + podName + " empty");
                                         return "No logs available for pod " + podName;
+                                }
+                                System.out.println("[Logs] " + robotName + " ok " + log.split("\n").length + " lines");
                                 return log;
                         }
                 } catch (Exception e) {
-                        System.err.println("Error fetching MicroShift pod logs for robot '" + robotName + "': " + e.getMessage());
+                        System.out.println("[Logs] " + robotName + " error: " + e.getClass().getSimpleName() + " " + e.getMessage());
                         return "Error fetching logs: " + e.getMessage();
                 }
         }
@@ -600,62 +618,36 @@ public class RobotEndpoint {
                         keyData = keyData.replace("\\n", "\n");
                         return new CertKey(certData, keyData);
                 } catch (Exception e) {
-                        System.err.println("Could not load credentials from ArgoCD secret for robot '" + robotName + "': " + e.getMessage());
+                        System.out.println("[Logs] ArgoCD secret " + robotName + " failed: " + e.getMessage());
                         return null;
                 }
         }
 
         private String getRobotURLFromConfigMap(String token) {
 
-                // System.out.println("Launchmode -> " + LaunchMode.current());
-                if (mockServerEndpoint != null && LaunchMode.current().equals(LaunchMode.TEST)) {
-                        System.out.println("Mock Endpoint -> " + mockServerEndpoint);
+                if (mockServerEndpoint != null && LaunchMode.current().equals(LaunchMode.TEST))
                         return mockServerEndpoint;
-                }
 
                 String apiTokenMap = System.getenv().getOrDefault("MAP", robotMap);
-
-                System.out.println("Robot token config map json -> " + apiTokenMap);
-
                 ObjectReader reader = new ObjectMapper().readerFor(Map.class);
-
                 String hostName = null;
 
                 try {
                         Map<String, String> map = reader.readValue(apiTokenMap);
-
-                        System.out.println("Robot token map -> " + map);
-
-                        System.out.println("Checking for token -> " + token);
-
                         hostName = map.get(token);
-                        if (hostName != null)
-                                System.out.println("Got hostname match -> " + hostName);
-                        else {
+                        if (hostName == null)
                                 hostName = addHostExtension(token);
-                                System.out.println("No match, defaulting to token as hostname ->  " + hostName);
-
-                        }
-
                 } catch (IOException e) {
-                        System.err.println("Error parsing Robot ConfigMap to JSON -> is the format correct?");
-                        e.printStackTrace();
+                        System.out.println("[Robot] config parse error: " + e.getMessage());
                 }
 
-                String hostUrl = "http://" + hostName + ":5000";
-                System.out.println("Using url -> " + hostUrl);
-
-                return hostUrl;
+                return "http://" + hostName + ":5000";
         }
 
         private String addHostExtension(String host) {
-                if (host.contains(".")) {
-                        System.out.println("Token propably IP, keeping as is");
+                if (host.contains("."))
                         return host;
-                } else {
-                        System.out.println("Adding host extension -> .robot.svc.cluster.local.");
-                        return host + ".robot.svc.cluster.local.";
-                }
+                return host + ".robot.svc.cluster.local.";
 
         }
 

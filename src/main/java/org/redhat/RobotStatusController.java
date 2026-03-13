@@ -23,11 +23,11 @@ public class RobotStatusController {
         Robot robotMatch = findRobotByName(name);
         if (robotMatch == null) {
             Robot newRobot = new Robot(name, null);
-            System.out.println("Registering new robot --> " + newRobot);
+            System.out.println("[Status] register robot=" + newRobot.getName());
             robotList.add(newRobot);
             return true;
         }
-        System.out.println("Robot already registered --> " + robotMatch);
+        System.out.println("[Status] robot already registered: " + robotMatch.getName());
         return false;
     }
 
@@ -42,10 +42,10 @@ public class RobotStatusController {
     public boolean updateRobot(String name, String operation) {
         Robot robotMatch = findRobotByName(name);
         if (robotMatch == null) {
-            System.err.println("Robot not registered: " + name);
+            System.out.println("[Status] update failed robot not registered: " + name);
             throw new IllegalArgumentException("Robot not registered: " + name);
         }
-        System.out.println("Robot found, updating --> " + robotMatch);
+        System.out.println("[Status] update robot=" + robotMatch.getName() + " op=" + operation);
         robotMatch.setOperation(operation);
         return robotMatch.isDisconnected();
     }
@@ -56,7 +56,7 @@ public class RobotStatusController {
     public boolean isRobotDisconnected(String name) {
         Robot robotMatch = findRobotByName(name);
         if (robotMatch == null) {
-            System.err.println("Robot not registered: " + name);
+            System.out.println("[Status] update failed robot not registered: " + name);
             throw new IllegalArgumentException("Robot not registered: " + name);
         }
         return robotMatch.isDisconnected();
@@ -68,7 +68,7 @@ public class RobotStatusController {
         Robot robotMatch = findRobotByShortName(shortId);
 
         if (robotMatch == null) {
-            System.err.println("Trying to disconnect unknown robot -> " + shortId);
+            System.out.println("[Status] disconnect unknown id=" + shortId);
             return false;
         } else {
             robotMatch.setDisconnected(!robotMatch.isDisconnected());
@@ -82,7 +82,7 @@ public class RobotStatusController {
         Robot robotMatch = findRobotByName(name);
 
         if (robotMatch == null)
-            System.err.println("Robot not found");
+            System.out.println("[Status] setStatus robot not found");
         else
             robotMatch.setStatus(status);
 
@@ -94,13 +94,13 @@ public class RobotStatusController {
         Robot robotMatch = findRobotByName(name);
 
         if (robotMatch == null) {
-            System.err.println("Robot not found: " + name);
+            System.out.println("[Status] initStatus robot not found: " + name);
             return false;
         }
         
         robotMatch.setInitStatus(initStatus);
         robotMatch.setInitStatusVerbose(initStatusVerbose);
-        System.out.println("Updated init status for robot '" + name + "' to: " + initStatus);
+        System.out.println("[Status] initStatus robot=" + name + " status=" + initStatus);
         return true;
     }
 
@@ -110,12 +110,12 @@ public class RobotStatusController {
         Robot robotMatch = findRobotByName(name);
 
         if (robotMatch == null) {
-            System.err.println("Robot not found: " + name);
+            System.out.println("[Status] skupperState robot not found: " + name);
             return false;
         }
         
         robotMatch.setSkupperState(skupperState);
-        System.out.println("Updated skupper state for robot '" + name + "' to: " + skupperState);
+        System.out.println("[Status] skupperState robot=" + name + " state=" + skupperState);
         return true;
     }
 
@@ -132,7 +132,7 @@ public class RobotStatusController {
         robotMatch.setCaCert(caCert);
         robotMatch.setClientCert(clientCert);
         robotMatch.setClientKey(clientKey);
-        System.out.println("Stored MicroShift credentials for robot '" + name + "'");
+        System.out.println("[Status] setRobotCreds robot=" + name);
         return true;
     }
 

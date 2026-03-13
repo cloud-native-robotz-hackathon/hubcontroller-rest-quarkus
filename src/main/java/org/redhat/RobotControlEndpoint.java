@@ -83,7 +83,7 @@ public class RobotControlEndpoint {
     void onStart(@Observes StartupEvent ev) {
         // Skip OpenShift operations in test and dev modes
         if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
-            System.out.println("Skipping startup OpenShift operations in " + LaunchMode.current() + " mode");
+            System.out.println("[Control] startup skipped (" + LaunchMode.current() + ")");
             return;
         }
         restartSkupperSiteController();
@@ -96,9 +96,8 @@ public class RobotControlEndpoint {
      */
     private void registerExistingRobots() {
         try {
-            System.out.println("Scanning for existing robot secrets in namespace '" + ROBOT_NAMESPACE + "'...");
+            System.out.println("[Control] scanning secrets ns=" + ROBOT_NAMESPACE);
 
-            // Find all secrets with the robot UUID label (this identifies our robot secrets)
             var secrets = openShiftClient.secrets()
                     .inNamespace(ROBOT_NAMESPACE)
                     .withLabel(ROBOT_UUID_LABEL)
@@ -106,22 +105,18 @@ public class RobotControlEndpoint {
                     .getItems();
 
             if (secrets == null || secrets.isEmpty()) {
-                System.out.println("No existing robot secrets found");
+                System.out.println("[Control] no robot secrets found");
                 return;
             }
 
-            System.out.println("Found " + secrets.size() + " existing robot secret(s)");
+            System.out.println("[Control] found " + secrets.size() + " robot secret(s)");
 
             for (Secret secret : secrets) {
                 String robotName = secret.getMetadata().getName();
                 
                 // Register the robot
                 boolean registered = robotStatusController.registerRobot(robotName);
-                if (registered) {
-                    System.out.println("Registered existing robot: " + robotName);
-                } else {
-                    System.out.println("Robot already registered: " + robotName);
-                }
+                System.out.println("[Control] robot " + robotName + (registered ? " registered" : " already registered"));
 
                 // Update skupper state based on whether certificate exists
                 if (secret.getData() != null && secret.getData().containsKey(SKUPPER_CA_CRT_KEY)) {
@@ -132,7 +127,7 @@ public class RobotControlEndpoint {
             }
 
         } catch (Exception e) {
-            System.err.println("Error scanning for existing robot secrets: " + e.getMessage());
+            System.out.println("[Control] scan error: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -143,7 +138,7 @@ public class RobotControlEndpoint {
      */
     private void restartSkupperSiteController() {
         try {
-            System.out.println("Restarting skupper-site-controller in namespace '" + OPENSHIFT_OPERATORS_NAMESPACE + "'...");
+            System.out.println("[Control] restarting skupper-controller ns=" + OPENSHIFT_OPERATORS_NAMESPACE);
 
             // Find and delete pods with the skupper-site-controller label
             var pods = openShiftClient.pods()
@@ -153,24 +148,24 @@ public class RobotControlEndpoint {
                     .getItems();
 
             if (pods == null || pods.isEmpty()) {
-                System.out.println("No skupper-site-controller pods found to restart");
+                System.out.println("[Control] no skupper-controller pods");
                 return;
             }
 
             for (Pod pod : pods) {
                 String podName = pod.getMetadata().getName();
-                System.out.println("Deleting skupper-site-controller pod: " + podName);
+                System.out.println("[Control] deleting pod " + podName);
                 
                 openShiftClient.pods()
                         .inNamespace(OPENSHIFT_OPERATORS_NAMESPACE)
                         .withName(podName)
                         .delete();
                 
-                System.out.println("Successfully deleted pod: " + podName + " (will be recreated by deployment)");
+                System.out.println("[Control] deleted " + podName);
             }
 
         } catch (Exception e) {
-            System.err.println("Error restarting skupper-site-controller: " + e.getMessage());
+            System.out.println("[Control] skupper restart error: " + e.getMessage());
             // Don't fail startup if we can't restart the controller
         }
     }
@@ -197,7 +192,7 @@ public class RobotControlEndpoint {
         // In test and dev modes, use cached UUIDs without OpenShift operations
         if (LaunchMode.current() == LaunchMode.TEST || LaunchMode.current() == LaunchMode.DEVELOPMENT) {
             String testUuid = robotUuidCache.computeIfAbsent(sanitizedName, k -> UUID.randomUUID().toString());
-            System.out.println("Test/Dev mode: Using UUID '" + testUuid + "' for robot '" + sanitizedName + "'");
+            System.out.println("[Control] eventId robot=" + sanitizedName + " uuid=" + testUuid + " (test/dev)");
             return Response.ok(testUuid).build();
         }
 
@@ -208,7 +203,7 @@ public class RobotControlEndpoint {
         String robotUuid = getOrCreateRobotSecret(sanitizedName);
         
         if (robotUuid != null) {
-            System.out.println("Returning UUID '" + robotUuid + "' for robot '" + sanitizedName + "'");
+            System.out.println("[Control] eventId robot=" + sanitizedName + " uuid=" + robotUuid);
             return Response.ok(robotUuid).build();
         } else {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -256,7 +251,7 @@ public class RobotControlEndpoint {
 
         String sanitizedVerbose = InputSanitizer.sanitizeVerbose(statusVerbose);
 
-        System.out.println("Setting init status for robot '" + sanitizedName + "' to: " + sanitizedStatus);
+        System.out.println("[Control] initStatus robot=" + sanitizedName + " status=" + sanitizedStatus);
 
         boolean updated = robotStatusController.setRobotInitStatus(sanitizedName, sanitizedStatus, sanitizedVerbose);
         
@@ -309,7 +304,7 @@ public class RobotControlEndpoint {
                     .build();
         }
 
-        System.out.println("Storing MicroShift credentials for robot '" + sanitizedName + "'");
+        System.out.println("[Control] setRobotCreds robot=" + sanitizedName);
 
         robotStatusController.setRobotCreds(sanitizedName, caCert, clientCert, clientKey);
 
@@ -317,7 +312,7 @@ public class RobotControlEndpoint {
             try {
                 createOrUpdateArgoCDClusterSecret(sanitizedName, clientCert, clientKey);
             } catch (Exception e) {
-                System.err.println("Failed to create ArgoCD cluster secret for robot '" + sanitizedName + "': " + e.getMessage());
+                System.out.println("[Control] ArgoCD secret error: " + e.getMessage());
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity("Credentials stored but failed to create ArgoCD cluster secret: " + e.getMessage())
                         .build();
@@ -356,7 +351,7 @@ public class RobotControlEndpoint {
                 .resource(secret)
                 .createOrReplace();
 
-        System.out.println("Created/updated ArgoCD cluster secret '" + secretName + "' in namespace '" + GITOPS_NAMESPACE + "'");
+        System.out.println("[Control] ArgoCD secret " + secretName + " ns=" + GITOPS_NAMESPACE);
     }
 
     /**
@@ -370,7 +365,7 @@ public class RobotControlEndpoint {
                     .get();
 
             if (existingNamespace != null) {
-                System.out.println("Namespace '" + ROBOT_NAMESPACE + "' already exists");
+                System.out.println("[Control] namespace " + ROBOT_NAMESPACE + " exists");
                 return;
             }
 
@@ -385,10 +380,10 @@ public class RobotControlEndpoint {
                     .resource(newNamespace)
                     .create();
 
-            System.out.println("Created namespace '" + ROBOT_NAMESPACE + "'");
+            System.out.println("[Control] created namespace " + ROBOT_NAMESPACE);
 
         } catch (Exception e) {
-            System.err.println("Error ensuring namespace exists: " + e.getMessage());
+            System.out.println("[Control] namespace error: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -405,7 +400,7 @@ public class RobotControlEndpoint {
                     .get();
 
             if (existingConfigMap != null) {
-                System.out.println("ConfigMap '" + SKUPPER_SITE_CONFIGMAP + "' already exists in namespace '" + ROBOT_NAMESPACE + "'");
+                System.out.println("[Control] skupper ConfigMap exists");
                 return;
             }
 
@@ -436,10 +431,10 @@ public class RobotControlEndpoint {
                     .resource(skupperSiteConfigMap)
                     .create();
 
-            System.out.println("Created Skupper site ConfigMap '" + SKUPPER_SITE_CONFIGMAP + "' in namespace '" + ROBOT_NAMESPACE + "'");
+            System.out.println("[Control] created skupper ConfigMap");
 
         } catch (Exception e) {
-            System.err.println("Error ensuring Skupper site ConfigMap exists: " + e.getMessage());
+            System.out.println("[Control] skupper ConfigMap error: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -459,7 +454,7 @@ public class RobotControlEndpoint {
                     .get();
 
             if (existingSecret != null) {
-                System.out.println("Secret '" + robotName + "' already exists in namespace '" + ROBOT_NAMESPACE + "'");
+                System.out.println("[Control] secret " + robotName + " exists");
                 
                 // Get the robot UUID from the label
                 String robotUuid = existingSecret.getMetadata().getLabels() != null 
@@ -469,7 +464,7 @@ public class RobotControlEndpoint {
                 if (robotUuid == null || robotUuid.isBlank()) {
                     // Secret exists but has no UUID label - this shouldn't happen, but generate one
                     robotUuid = UUID.randomUUID().toString();
-                    System.out.println("Warning: Secret had no UUID label, generated new UUID: " + robotUuid);
+                    System.out.println("[Control] secret had no UUID, generated " + robotUuid);
                 }
                 
                 // Check if Skupper has added certificates to the secret
@@ -502,7 +497,7 @@ public class RobotControlEndpoint {
                     .resource(newSecret)
                     .create();
 
-            System.out.println("Created Skupper connection token request secret '" + robotName + "' with UUID '" + robotUuid + "' in namespace '" + ROBOT_NAMESPACE + "'");
+            System.out.println("[Control] created secret " + robotName + " uuid=" + robotUuid);
             
             // Update skupper state to Token Request
             robotStatusController.setRobotSkupperState(robotName, "Token Request");
@@ -510,7 +505,7 @@ public class RobotControlEndpoint {
             return robotUuid;
 
         } catch (Exception e) {
-            System.err.println("Error getting/creating secret for robot '" + robotName + "': " + e.getMessage());
+            System.out.println("[Control] secret error robot=" + robotName + ": " + e.getMessage());
             e.printStackTrace();
             return null;
         }
@@ -532,7 +527,7 @@ public class RobotControlEndpoint {
                     .build();
         }
 
-        System.out.println("Fetching secret '" + sanitizedName + "' in namespace '" + ROBOT_NAMESPACE + "'");
+        System.out.println("[Control] getToken robot=" + sanitizedName);
 
         try {
             // Fetch the secret from OpenShift
@@ -542,7 +537,7 @@ public class RobotControlEndpoint {
                     .get();
 
             if (secret == null) {
-                System.err.println("Secret not found for robot: " + sanitizedName);
+                System.out.println("[Control] getToken secret not found robot=" + sanitizedName);
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity("Secret not found for robot: " + sanitizedName)
                         .build();
@@ -550,7 +545,7 @@ public class RobotControlEndpoint {
 
             // Check if Skupper has written the certificate to the secret
             if (secret.getData() == null || !secret.getData().containsKey(SKUPPER_CA_CRT_KEY)) {
-                System.out.println("Certificate not yet available for robot: " + sanitizedName + " - Skupper has not written to the secret");
+                System.out.println("[Control] getToken robot=" + sanitizedName + " cert not ready");
                 return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                         .entity("Certificate not yet available. Skupper has not written to the secret.")
                         .build();
@@ -559,7 +554,7 @@ public class RobotControlEndpoint {
             // Convert the secret to YAML format (includes all metadata, labels, annotations, and data)
             String secretYaml = Serialization.asYaml(secret);
 
-            System.out.println("Successfully retrieved secret YAML for robot: " + sanitizedName);
+            System.out.println("[Control] getToken ok robot=" + sanitizedName);
             
             // Update skupper state to Cert retrieved
             robotStatusController.setRobotSkupperState(sanitizedName, "Cert retrieved");
@@ -567,7 +562,7 @@ public class RobotControlEndpoint {
             return Response.ok(secretYaml).build();
 
         } catch (Exception e) {
-            System.err.println("Error fetching secret for robot '" + sanitizedName + "': " + e.getMessage());
+            System.out.println("[Control] getToken error: " + e.getMessage());
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("Error fetching secret: " + e.getMessage())
@@ -593,7 +588,7 @@ public class RobotControlEndpoint {
 
         int tailLines = (lines != null && lines > 0) ? lines : 100;
         
-        System.out.println("Fetching pod logs for robot '" + robotName + "' (last " + tailLines + " lines)");
+        System.out.println("[Control] podLogs robot=" + robotName + " lines=" + tailLines);
 
         try {
             // Find the pod in the robot's namespace
@@ -604,7 +599,7 @@ public class RobotControlEndpoint {
                     .getItems();
 
             if (pods == null || pods.isEmpty()) {
-                System.err.println("No pods found in namespace: " + robotName);
+                System.out.println("[Control] podLogs no pods ns=" + robotName);
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity("No pods found in namespace: " + robotName)
                         .build();
@@ -622,7 +617,7 @@ public class RobotControlEndpoint {
                             .orElse(pods.get(0)));
 
             String podName = targetPod.getMetadata().getName();
-            System.out.println("Found pod: " + podName + " in namespace: " + robotName);
+            System.out.println("[Control] podLogs pod " + robotName + "/" + podName);
 
             // Get the logs from the pod
             String logs = openShiftClient.pods()
@@ -635,11 +630,11 @@ public class RobotControlEndpoint {
                 logs = "No logs available for pod: " + podName;
             }
 
-            System.out.println("Successfully retrieved " + logs.split("\n").length + " log lines for robot: " + robotName);
+            System.out.println("[Control] podLogs ok robot=" + robotName + " lines=" + logs.split("\n").length);
             return Response.ok(logs).build();
 
         } catch (Exception e) {
-            System.err.println("Error fetching pod logs for robot '" + robotName + "': " + e.getMessage());
+            System.out.println("[Control] podLogs error: " + e.getMessage());
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("Error fetching logs: " + e.getMessage())
