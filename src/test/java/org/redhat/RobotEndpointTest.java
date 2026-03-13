@@ -273,4 +273,25 @@ class RobotEndpointTest {
                                 .body(is("Robot Not Found"));
         }
 
+        @Test
+        void testRobotEndpointLogsWithoutCredentials() {
+                // Robot "data" is registered but has no MicroShift credentials set
+                given()
+                                .queryParam("user_key", "data")
+                                .when().get("/robot/logs")
+                                .then()
+                                .statusCode(200)
+                                .body(org.hamcrest.CoreMatchers.containsString("Credentials not set"));
+        }
+
+        @Test
+        void testRobotEndpointLogsUnregistered() {
+                given()
+                                .queryParam("user_key", "nonexistent")
+                                .when().get("/robot/logs")
+                                .then()
+                                .statusCode(200)
+                                .body(is("Robot Not Registered"));
+        }
+
 }

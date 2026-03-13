@@ -555,7 +555,7 @@ function fetchFullscreenLogs(robotName) {
         success: function(response) {
             if (response) {
                 logContent.textContent = response;
-                logContent.scrollTop = logContent.scrollHeight;
+                scrollLogToBottom(logContent);
             } else {
                 logContent.textContent = 'No logs available';
             }
@@ -563,6 +563,14 @@ function fetchFullscreenLogs(robotName) {
         error: function() {
             logContent.textContent = 'Unable to fetch logs';
         }
+    });
+}
+
+function scrollLogToBottom(el) {
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    requestAnimationFrame(function() {
+        el.scrollTop = el.scrollHeight;
     });
 }
 

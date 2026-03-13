@@ -12,6 +12,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -45,6 +51,10 @@ public class RobotEndpoint {
         private static final String RESPONSE_OK = "OK";
         private static final int ROBOT_APP_HTTP_PORT = 80;
         private static final int ROBOT_APP_REQUEST_TIMEOUT_SEC = 15;
+        private static final int MICROSHIFT_API_PORT = 6443;
+        private static final String STARTER_APP_LABEL = "starterapp-python";
+        private static final String STARTER_APP_LABEL_KEY = "app";
+        private static final int DEFAULT_LOG_LINES = 200;
 
         // The robot token being sent das parameter by the users
         private static final String API_TOKEN = "user_key";
@@ -446,6 +456,78 @@ public class RobotEndpoint {
                         // Log connection errors concisely - these are expected when robot is offline
                         System.out.println(sanitizedKey + ": Camera connection failed to " + urlString + " - " + e.getClass().getSimpleName() + ": " + e.getMessage());
                         return "Connection Error";
+                }
+        }
+
+        @GET
+        @Path("/logs")
+        @Operation(summary = "Get pod logs from the starter-app on the robot's MicroShift cluster")
+        @Produces("text/plain")
+        public String logs(
+                        @Parameter(description = "The token of the robot", required = true) @RestQuery(API_TOKEN) String userKey,
+                        @Parameter(description = "Number of log lines (default 200)", required = false) @RestQuery("lines") Integer lines) {
+
+                String sanitizedKey = sanitizeUserKey(userKey);
+                if (sanitizedKey == null)
+                        return "Robot Not Registered";
+
+                Robot robot = robotStatusController.findRobotByShortName(sanitizedKey);
+                if (robot == null)
+                        robot = robotStatusController.getRobotList().stream()
+                                        .filter(r -> sanitizedKey.equals(r.getName()))
+                                        .findFirst()
+                                        .orElse(null);
+                if (robot == null)
+                        return "Robot Not Registered";
+
+                String caCert = robot.getCaCert();
+                String clientCert = robot.getClientCert();
+                String clientKey = robot.getClientKey();
+                if (caCert == null || caCert.isBlank() || clientCert == null || clientCert.isBlank() || clientKey == null || clientKey.isBlank()) {
+                        return "Credentials not set. Call /control/setRobotCreds for this robot to view MicroShift pod logs.";
+                }
+
+                int tailLines = (lines != null && lines > 0) ? Math.min(lines, 1000) : DEFAULT_LOG_LINES;
+                String robotName = robot.getName();
+                String masterUrl = "https://" + robotName + ".svc.cluster.local:" + MICROSHIFT_API_PORT;
+
+                try {
+                        Config config = new ConfigBuilder()
+                                        .withMasterUrl(masterUrl)
+                                        .withCaCertData(caCert)
+                                        .withClientCertData(clientCert)
+                                        .withClientKeyData(clientKey)
+                                        .withRequestTimeout(15_000)
+                                        .withConnectionTimeout(10_000)
+                                        .build();
+
+                        try (KubernetesClient microShiftClient = new KubernetesClientBuilder().withConfig(config).build()) {
+                                PodList pods = microShiftClient.pods()
+                                                .inAnyNamespace()
+                                                .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
+                                                .list();
+
+                                if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
+                                        return "No pod with label app=" + STARTER_APP_LABEL + " found on MicroShift at " + masterUrl;
+                                }
+
+                                var pod = pods.getItems().get(0);
+                                String namespace = pod.getMetadata().getNamespace();
+                                String podName = pod.getMetadata().getName();
+
+                                String log = microShiftClient.pods()
+                                                .inNamespace(namespace)
+                                                .withName(podName)
+                                                .tailingLines(tailLines)
+                                                .getLog();
+
+                                if (log == null || log.isEmpty())
+                                        return "No logs available for pod " + podName;
+                                return log;
+                        }
+                } catch (Exception e) {
+                        System.err.println("Error fetching MicroShift pod logs for robot '" + robotName + "': " + e.getMessage());
+                        return "Error fetching logs: " + e.getMessage();
                 }
         }
 
