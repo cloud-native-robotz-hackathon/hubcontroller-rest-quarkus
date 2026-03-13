@@ -526,24 +526,7 @@ public class RobotEndpoint {
                         Config config = configBuilder.build();
 
                         try (KubernetesClient microShiftClient = new KubernetesClientBuilder().withConfig(config).build()) {
-                                PodList pods = microShiftClient.pods()
-                                                .inNamespace(STARTER_APP_NAMESPACE)
-                                                .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
-                                                .list();
-
-                                if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
-                                        pods = microShiftClient.pods()
-                                                .inNamespace("default")
-                                                .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
-                                                .list();
-                                }
-                                if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
-                                        pods = microShiftClient.pods()
-                                                        .inAnyNamespace()
-                                                        .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
-                                                        .list();
-                                }
-
+                                PodList pods = listPodsWithFallback(microShiftClient, robotName);
                                 if (pods == null || pods.getItems() == null || pods.getItems().isEmpty()) {
                                         System.out.println("[Logs] " + robotName + " no pod app=" + STARTER_APP_LABEL);
                                         return "No pod with label app=" + STARTER_APP_LABEL + " found on MicroShift at " + masterUrl;
@@ -568,9 +551,48 @@ public class RobotEndpoint {
                                 return log;
                         }
                 } catch (Exception e) {
-                        System.out.println("[Logs] " + robotName + " error: " + e.getClass().getSimpleName() + " " + e.getMessage());
+                        System.out.println("[Logs] " + robotName + " error: " + e.getClass().getName() + " " + e.getMessage());
+                        if (e.getCause() != null)
+                                System.out.println("[Logs] cause: " + e.getCause().getClass().getName() + " " + e.getCause().getMessage());
+                        e.printStackTrace(System.out);
                         return "Error fetching logs: " + e.getMessage();
                 }
+        }
+
+        /**
+         * Tries listing pods in robot-app, then default, then any namespace; returns first non-empty list or null.
+         * Note: Fabric8 often reports "name: [null]" in list failures because list() has no single resource name.
+         */
+        private PodList listPodsWithFallback(KubernetesClient client, String robotName) {
+                for (String ns : new String[] { STARTER_APP_NAMESPACE, "default" }) {
+                        try {
+                                PodList pods = client.pods()
+                                                .inNamespace(ns)
+                                                .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
+                                                .list();
+                                if (pods != null && pods.getItems() != null && !pods.getItems().isEmpty())
+                                        return pods;
+                        } catch (Exception e) {
+                                System.out.println("[Logs] " + robotName + " list ns=" + ns + " failed: " + e.getClass().getName() + " " + e.getMessage());
+                                if (e.getCause() != null)
+                                        System.out.println("[Logs] cause: " + e.getCause().getClass().getName() + " " + e.getCause().getMessage());
+                                e.printStackTrace(System.out);
+                        }
+                }
+                try {
+                        PodList pods = client.pods()
+                                        .inAnyNamespace()
+                                        .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
+                                        .list();
+                        if (pods != null && pods.getItems() != null && !pods.getItems().isEmpty())
+                                return pods;
+                } catch (Exception e) {
+                        System.out.println("[Logs] " + robotName + " list inAnyNamespace failed: " + e.getClass().getName() + " " + e.getMessage());
+                        if (e.getCause() != null)
+                                System.out.println("[Logs] cause: " + e.getCause().getClass().getName() + " " + e.getCause().getMessage());
+                        e.printStackTrace(System.out);
+                }
+                return null;
         }
 
         private record CertKey(String cert, String key) {
