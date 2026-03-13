@@ -509,7 +509,7 @@ public class RobotEndpoint {
                 }
 
                 int tailLines = (lines != null && lines > 0) ? Math.min(lines, 1000) : DEFAULT_LOG_LINES;
-                String masterUrl = "https://" + robotName + ".svc.cluster.local:" + MICROSHIFT_API_PORT;
+                String masterUrl = "https://" + robotName + ".robot.svc.cluster.local.:6443";
 
                 try {
                         ConfigBuilder configBuilder = new ConfigBuilder()
