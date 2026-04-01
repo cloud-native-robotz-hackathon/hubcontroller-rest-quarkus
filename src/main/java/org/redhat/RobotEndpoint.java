@@ -55,7 +55,7 @@ public class RobotEndpoint {
         private static final String RESPONSE_OK = "OK";
         private static final int ROBOT_APP_HTTP_PORT = 80;
         private static final int ROBOT_APP_REQUEST_TIMEOUT_SEC = 15;
-        private static final int MICROSHIFT_API_PORT = 6443;
+
         private static final String STARTER_APP_LABEL = "starterapp-python";
         private static final String STARTER_APP_LABEL_KEY = "app";
         private static final String STARTER_APP_NAMESPACE = "robot-app";
@@ -511,17 +511,22 @@ public class RobotEndpoint {
                 int tailLines = (lines != null && lines > 0) ? Math.min(lines, 1000) : DEFAULT_LOG_LINES;
                 String masterUrl = "https://" + robotName + ".robot.svc.cluster.local.:6443";
 
+                System.out.println("[Logs] " + robotName + " connecting to " + masterUrl
+                        + " caCert=" + (caCert != null && !caCert.isBlank() ? caCert.length() + "chars" : "none")
+                        + " clientCert=" + (clientCert != null ? clientCert.length() + "chars" : "null")
+                        + " clientKey=" + (clientKey != null ? clientKey.length() + "chars" : "null"));
+
                 try {
                         ConfigBuilder configBuilder = new ConfigBuilder()
                                         .withMasterUrl(masterUrl)
                                         .withClientCertData(clientCert)
                                         .withClientKeyData(clientKey)
+                                        .withTrustCerts(true)
+                                        .withDisableHostnameVerification(true)
                                         .withRequestTimeout(15_000)
                                         .withConnectionTimeout(10_000);
                         if (caCert != null && !caCert.isBlank()) {
                                 configBuilder.withCaCertData(caCert);
-                        } else {
-                                configBuilder.withTrustCerts(true);
                         }
                         Config config = configBuilder.build();
 
@@ -566,11 +571,14 @@ public class RobotEndpoint {
         private PodList listPodsWithFallback(KubernetesClient client, String robotName) {
                 for (String ns : new String[] { STARTER_APP_NAMESPACE, "default" }) {
                         try {
+                                System.out.println("[Logs] " + robotName + " listing pods ns=" + ns + " label=" + STARTER_APP_LABEL_KEY + "=" + STARTER_APP_LABEL);
                                 PodList pods = client.pods()
                                                 .inNamespace(ns)
                                                 .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
                                                 .list();
-                                if (pods != null && pods.getItems() != null && !pods.getItems().isEmpty())
+                                int count = (pods != null && pods.getItems() != null) ? pods.getItems().size() : 0;
+                                System.out.println("[Logs] " + robotName + " ns=" + ns + " found " + count + " pods");
+                                if (count > 0)
                                         return pods;
                         } catch (Exception e) {
                                 System.out.println("[Logs] " + robotName + " list ns=" + ns + " failed: " + e.getClass().getName() + " " + e.getMessage());
@@ -580,11 +588,14 @@ public class RobotEndpoint {
                         }
                 }
                 try {
+                        System.out.println("[Logs] " + robotName + " listing pods inAnyNamespace label=" + STARTER_APP_LABEL_KEY + "=" + STARTER_APP_LABEL);
                         PodList pods = client.pods()
                                         .inAnyNamespace()
                                         .withLabel(STARTER_APP_LABEL_KEY, STARTER_APP_LABEL)
                                         .list();
-                        if (pods != null && pods.getItems() != null && !pods.getItems().isEmpty())
+                        int count = (pods != null && pods.getItems() != null) ? pods.getItems().size() : 0;
+                        System.out.println("[Logs] " + robotName + " inAnyNamespace found " + count + " pods");
+                        if (count > 0)
                                 return pods;
                 } catch (Exception e) {
                         System.out.println("[Logs] " + robotName + " list inAnyNamespace failed: " + e.getClass().getName() + " " + e.getMessage());
